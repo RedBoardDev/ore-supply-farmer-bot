@@ -1,4 +1,9 @@
-name: QA
+name: QA / Code Quality
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
 
 on:
   push:
@@ -20,9 +25,10 @@ on:
       - "yarn.lock"
 
 jobs:
-  qa:
-    name: Quality assurance
+  qa-check:
+    name: QA Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -30,23 +36,22 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Node.js
+      - name: Enable Corepack and prepare Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.12.0 --activate
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20
           cache: "yarn"
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --immutable
 
-      - name: TypeScript Type Check
-        run: yarn typecheck
+      - name: Run all quality checks (Biome + TypeScript)
+        run: npx turbo run check:all --concurrency=10
 
-      - name: Biome Lint
-        run: yarn lint:biome
-
-      - name: Build Project
-        run: yarn build
+      - name: Build check
+        run: npx turbo run build

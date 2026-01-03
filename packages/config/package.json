@@ -10,8 +10,12 @@
     "build": "tsc",
     "clean": "rm -rf dist",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "lint": "biome lint ."
+    "typescript:check": "tsc --noEmit",
+    "lint:check": "biome check .",
+    "lint:fix": "biome check . --apply-unsafe",
+    "format:check": "biome format .",
+    "format:fix": "biome format --write .",
+    "check:all": "yarn typescript:check && yarn lint:check"
   },
   "dependencies": {
     "zod": "^3.22.0"

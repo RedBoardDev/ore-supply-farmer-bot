@@ -1,32 +1,54 @@
 {
-  "$schema": "https://turborepo.dev/schema.json",
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
   "globalDependencies": ["tsconfig.json", ".env*"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "!dist/node_modules/**"]
     },
-    "clean": {
-      "outputs": [],
-      "cache": false
-    },
-    "typecheck": {
-      "dependsOn": ["^typecheck"],
+    "lint:check": {
+      "cache": true,
+      "dependsOn": ["^lint:check"],
       "outputs": []
     },
-    "lint": {
-      "dependsOn": ["^lint"],
+    "lint:fix": {
+      "cache": false
+    },
+    "format:check": {
+      "cache": true,
+      "outputs": []
+    },
+    "format:fix": {
+      "cache": false
+    },
+    "check:all": {
+      "cache": true,
+      "dependsOn": ["^check:all"],
+      "outputs": []
+    },
+    "typescript:check": {
+      "cache": true,
+      "dependsOn": ["^typescript:check"],
       "outputs": []
     },
     "test": {
+      "cache": true,
       "dependsOn": ["^test"],
       "outputs": ["coverage/**"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "start": {
+      "cache": false
+    },
+    "clean": {
       "cache": false
     }
   }
