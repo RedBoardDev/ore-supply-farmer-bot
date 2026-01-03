@@ -48,7 +48,7 @@ jobs:
           cache: "yarn"
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: yarn install
 
       - name: Run all quality checks (Biome + TypeScript)
         run: npx turbo run check:all --concurrency=10
