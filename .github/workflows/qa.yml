@@ -1,0 +1,52 @@
+name: QA
+
+on:
+  push:
+    branches:
+      - main
+      - gh-readonly-queue/main/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+      - "apps/**"
+      - "packages/**"
+      - "tsconfig*.json"
+      - "package.json"
+      - "biome.json"
+      - "turbo.json"
+      - ".yarnrc.yml"
+      - "yarn.lock"
+
+jobs:
+  qa:
+    name: Quality assurance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: TypeScript Type Check
+        run: yarn typecheck
+
+      - name: Biome Lint
+        run: yarn lint:biome
+
+      - name: Build Project
+        run: yarn build
