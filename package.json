@@ -1,0 +1,42 @@
+{
+  "name": "ore-smart-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ORE Smart Bot - Domain-Driven Design refactor with Hexagonal Architecture",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "yarn turbo run build",
+    "build:domain": "cd packages/domain && yarn build",
+    "build:config": "cd packages/config && yarn build",
+    "build:bot": "cd apps/bot && yarn build",
+    "test": "yarn turbo run test",
+    "test:domain": "cd packages/domain && yarn test",
+    "typecheck": "yarn turbo run typecheck",
+    "lint": "yarn turbo run lint",
+    "lint:biome": "yarn biome check .",
+    "format:biome": "yarn biome format --write .",
+    "check": "yarn turbo run typecheck lint",
+    "check:biome": "yarn biome check . --write",
+    "clean": "yarn turbo run clean",
+    "dev": "yarn turbo run dev --filter=@ore-smart-bot/bot",
+    "start": "cd apps/bot && yarn start"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.11",
+    "tsx": "^4.6.0",
+    "turbo": "^2.7.5",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "yarn@4.12.0",
+  "dependencies": {
+    "pino": "^10.2.1",
+    "pino-pretty": "^13.1.3"
+  }
+}
