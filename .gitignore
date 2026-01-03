@@ -14,9 +14,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Package locks (use your chosen lockfile)
+# Package locks (other managers; keep yarn.lock committed)
 package-lock.json
-yarn.lock
 pnpm-lock.yaml
 
 # =============================================
@@ -67,3 +66,4 @@ coverage/
 *.pid
 *.seed
 *.pid.lock
+.osgrep
