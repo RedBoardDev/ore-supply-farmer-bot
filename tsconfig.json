@@ -3,6 +3,15 @@
     "target": "ES2022",
     "module": "Preserve",
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@osb/domain": ["packages/domain/src/index.ts"],
+      "@osb/domain/*": ["packages/domain/src/*"],
+      "@osb/config": ["packages/config/src/index.ts"],
+      "@osb/config/*": ["packages/config/src/*"],
+      "@osb/bot": ["apps/bot/src/main.ts"],
+      "@osb/bot/*": ["apps/bot/src/*"]
+    },
     "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,

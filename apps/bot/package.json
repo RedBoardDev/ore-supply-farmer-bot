@@ -1,11 +1,21 @@
 {
-  "name": "@ore-smart-bot/bot",
+  "name": "@osb/bot",
   "version": "1.0.0",
   "private": true,
   "description": "ORE Smart Bot application",
   "main": "./src/main.ts",
   "types": "./src/main.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/main.ts",
+      "import": "./src/main.ts"
+    },
+    "./*": {
+      "types": "./src/*.ts",
+      "import": "./src/*.ts"
+    }
+  },
   "scripts": {
     "start": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
@@ -14,14 +24,14 @@
     "test": "vitest run",
     "typescript:check": "tsc --noEmit",
     "lint:check": "biome check .",
-    "lint:fix": "biome check . --apply-unsafe",
+    "lint:fix": "biome check . --write --unsafe",
     "format:check": "biome format .",
     "format:fix": "biome format --write .",
     "check:all": "yarn typescript:check && yarn lint:check"
   },
   "dependencies": {
-    "@ore-smart-bot/config": "*",
-    "@ore-smart-bot/domain": "*",
+    "@osb/config": "*",
+    "@osb/domain": "*",
     "@solana/web3.js": "^1.91.0",
     "bs58": "^5.0.0"
   },

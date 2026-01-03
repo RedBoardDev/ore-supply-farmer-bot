@@ -1,5 +1,5 @@
 export class RoundId {
-  private constructor(private readonly _value: bigint) { }
+  private constructor(private readonly _value: bigint) {}
 
   get value(): bigint {
     return this._value;
@@ -7,7 +7,7 @@ export class RoundId {
 
   static create(value: bigint): RoundId {
     if (value < 0n) {
-      throw new Error('RoundId cannot be negative');
+      throw new Error("RoundId cannot be negative");
     }
     return new RoundId(value);
   }

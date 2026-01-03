@@ -1,4 +1,5 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
     "module": "Preserve",
@@ -16,7 +17,16 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@osb/domain": ["../../packages/domain/dist/index.d.ts"],
+      "@osb/domain/*": ["../../packages/domain/dist/*"],
+      "@osb/config": ["../../packages/config/dist/index.d.ts"],
+      "@osb/config/*": ["../../packages/config/dist/*"],
+      "@osb/bot": ["./src/main.ts"],
+      "@osb/bot/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

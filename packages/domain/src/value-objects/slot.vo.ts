@@ -3,7 +3,7 @@ export const SLOTS_PER_SECOND = 2.5;
 export const SLOT_DURATION_MS = Math.round(1_000 / SLOTS_PER_SECOND);
 
 export class Slot {
-  private constructor(private readonly _value: bigint) { }
+  private constructor(private readonly _value: bigint) {}
 
   get value(): bigint {
     return this._value;
@@ -11,7 +11,7 @@ export class Slot {
 
   static create(value: bigint): Slot {
     if (value < 0n) {
-      throw new Error('Slot value cannot be negative');
+      throw new Error("Slot value cannot be negative");
     }
     return new Slot(value);
   }
@@ -56,4 +56,3 @@ export class Slot {
     return `Slot ${this._value.toString()}`;
   }
 }
-

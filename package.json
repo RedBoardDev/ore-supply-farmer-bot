@@ -22,7 +22,7 @@
     "check:all": "npx turbo run check:all",
     "check": "npx turbo run typescript:check lint:check",
     "clean": "npx turbo run clean",
-    "dev": "npx turbo run dev --filter=@ore-smart-bot/bot",
+    "dev": "npx turbo run dev --filter=@osb/bot",
     "start": "cd apps/bot && yarn start"
   },
   "devDependencies": {

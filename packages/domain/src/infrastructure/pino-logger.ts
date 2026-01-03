@@ -1,5 +1,5 @@
-import pino, { type Logger, type LoggerOptions } from 'pino';
-import type { LoggerPort, LogLevel } from './logger.port.js';
+import pino, { type Logger, type LoggerOptions } from "pino";
+import type { LoggerPort, LogLevel } from "./logger.port.js";
 
 export interface LoggerConfig {
   level: LogLevel;
@@ -30,11 +30,11 @@ export class PinoLogger implements LoggerPort {
     }
 
     options.transport = {
-      target: 'pino-pretty',
+      target: "pino-pretty",
       options: {
         colorize: true,
-        translateTime: 'SYS:standard',
-        ignore: 'pid,hostname',
+        translateTime: "SYS:standard",
+        ignore: "pid,hostname",
       },
     };
 
@@ -58,22 +58,18 @@ export class PinoLogger implements LoggerPort {
   }
 
   error(message: string, error?: Error, context?: Record<string, unknown>): void {
-    const logContext = error
-      ? { ...context, err: { message: error.message, stack: error.stack } }
-      : context;
+    const logContext = error ? { ...context, err: { message: error.message, stack: error.stack } } : context;
     this.logger.error(logContext, message);
   }
 
   fatal(message: string, error?: Error, context?: Record<string, unknown>): void {
-    const logContext = error
-      ? { ...context, err: { message: error.message, stack: error.stack } }
-      : context;
+    const logContext = error ? { ...context, err: { message: error.message, stack: error.stack } } : context;
     this.logger.fatal(logContext, message);
   }
 
   child(bindings: Record<string, unknown>): LoggerPort {
     const childLogger = this.logger.child(bindings);
-    return new PinoLogger({ name: this.name, level: 'info' }, childLogger);
+    return new PinoLogger({ name: this.name, level: "info" }, childLogger);
   }
 
   setLevel(level: LogLevel): void {
@@ -86,13 +82,13 @@ export class PinoLogger implements LoggerPort {
 }
 
 export function createPinoLogger(config?: Partial<LoggerConfig>): LoggerPort {
-  const level = ((process.env.LOG_LEVEL ?? 'info') as LogLevel);
+  const level = (process.env.LOG_LEVEL ?? "info") as LogLevel;
   const containerId = process.env.CONTAINER_ID;
-  const prettyPrint = process.env.NODE_ENV !== 'production';
+  const prettyPrint = process.env.NODE_ENV !== "production";
 
   const fullConfig: LoggerConfig = {
     level,
-    name: 'ore-smart-bot',
+    name: "ore-smart-bot",
     containerId,
     prettyPrint,
     ...config,

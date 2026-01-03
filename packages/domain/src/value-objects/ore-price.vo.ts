@@ -8,7 +8,11 @@ export interface OrePriceProps {
 }
 
 export class OrePrice {
-  private constructor(private readonly _orePerSol: number, private readonly _netOrePerSol: number, private readonly _fetchedAt: number) { }
+  private constructor(
+    private readonly _orePerSol: number,
+    private readonly _netOrePerSol: number,
+    private readonly _fetchedAt: number,
+  ) {}
 
   get orePerSol(): number {
     return this._orePerSol;
@@ -24,13 +28,13 @@ export class OrePrice {
 
   static create(orePerSol: number, netOrePerSol: number, fetchedAt: number): OrePrice {
     if (orePerSol <= 0) {
-      throw new Error('ORE price must be positive');
+      throw new Error("ORE price must be positive");
     }
     if (netOrePerSol <= 0) {
-      throw new Error('Net ORE price must be positive');
+      throw new Error("Net ORE price must be positive");
     }
     if (fetchedAt <= 0) {
-      throw new Error('Fetch timestamp must be positive');
+      throw new Error("Fetch timestamp must be positive");
     }
     return new OrePrice(orePerSol, netOrePerSol, fetchedAt);
   }
