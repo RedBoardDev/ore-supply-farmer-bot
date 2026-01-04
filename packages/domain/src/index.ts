@@ -7,6 +7,12 @@ export type { Round, RoundProps } from "./aggregates/round.aggregate";
 export type { LoggerPort, LogLevel } from "./infrastructure/logger.port";
 export { createPinoLogger, PinoLogger } from "./infrastructure/pino-logger";
 
+// Ports (Interfaces)
+export type { BlockchainPort } from './ports/blockchain.port.js';
+export type { NotificationMessage, NotificationPort } from './ports/notification.port.js';
+export type { PricePort, PriceQuote } from './ports/price.port.js';
+export type { StoragePort } from './ports/storage.port.js';
+
 // Value Objects
 export { LAMPORTS_PER_SOL, Lamports } from "./value-objects/lamports.vo";
 export { ORE_FEES, OrePrice } from "./value-objects/ore-price.vo";
