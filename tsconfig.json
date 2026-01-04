@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "Preserve",
     "moduleResolution": "bundler",
+    "composite": true,
     "baseUrl": ".",
     "paths": {
       "@osb/domain": ["packages/domain/src/index.ts"],

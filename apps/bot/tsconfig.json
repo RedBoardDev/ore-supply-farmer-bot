@@ -20,14 +20,18 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@osb/domain": ["../../packages/domain/dist/index.d.ts"],
-      "@osb/domain/*": ["../../packages/domain/dist/*"],
-      "@osb/config": ["../../packages/config/dist/index.d.ts"],
-      "@osb/config/*": ["../../packages/config/dist/*"],
+      "@osb/domain": ["../../packages/domain/src/index.ts"],
+      "@osb/domain/*": ["../../packages/domain/src/*"],
+      "@osb/config": ["../../packages/config/src/index.ts"],
+      "@osb/config/*": ["../../packages/config/src/*"],
       "@osb/bot": ["./src/main.ts"],
       "@osb/bot/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "../../packages/domain" },
+    { "path": "../../packages/config" }
+  ]
 }
