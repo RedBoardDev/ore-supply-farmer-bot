@@ -7,7 +7,7 @@ export interface LamportsProps {
 }
 
 export class Lamports {
-  private constructor(private readonly _value: bigint) {}
+  private constructor(private readonly _value: bigint) { }
 
   get value(): bigint {
     return this._value;
