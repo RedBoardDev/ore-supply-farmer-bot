@@ -547,7 +547,7 @@ __metadata:
   dependencies:
     typescript: "npm:^5.3.0"
     vitest: "npm:^1.0.0"
-    zod: "npm:^3.22.0"
+    zod: "npm:^4.3.5"
   languageName: unknown
   linkType: soft
 
@@ -3060,9 +3060,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.22.0":
-  version: 3.25.76
-  resolution: "zod@npm:3.25.76"
-  checksum: 10c2/cf7bc31721738488203786d381842b854f7da10a91485d98de4a9e63824483461d8eb7e5d49b34eadaff8e0297855c6f289ff1f9c8574c4e4be4307d327dea3d
+"zod@npm:^4.3.5":
+  version: 4.3.6
+  resolution: "zod@npm:4.3.6"
+  checksum: 10c2/0bc891a20fd325b3a492d0b37451094900451ac158350377329b9a9a5a04f71638e5a78e32ecb07233ca149ac35adbaa9db86be27f81ca261db06b34eaf08348
   languageName: node
   linkType: hard
