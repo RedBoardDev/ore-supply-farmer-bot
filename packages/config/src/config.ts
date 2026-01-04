@@ -1,12 +1,11 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { ZodIssue } from 'zod';
-import { configSchema } from './schema.js';
-import type { BotConfig } from './types.js';
+import type * as z from 'zod';
+import { type ConfigSchema, configSchema } from './schema';
 
 const DEFAULT_CONFIG_PATH = path.resolve(process.cwd(), 'config/config.json');
 
-export function loadConfig(configPath: string = DEFAULT_CONFIG_PATH): BotConfig {
+export function loadConfig(configPath: string = DEFAULT_CONFIG_PATH): ConfigSchema {
   if (!fs.existsSync(configPath)) {
     throw new Error(`Configuration file not found: ${configPath}`);
   }
@@ -17,17 +16,17 @@ export function loadConfig(configPath: string = DEFAULT_CONFIG_PATH): BotConfig 
   const result = configSchema.safeParse(rawConfig);
 
   if (!result.success) {
-    const errors = result.error.errors.map((err: ZodIssue) => {
+    const errors = result.error.issues.map((err: z.core.$ZodIssue) => {
       const errPath = err.path.join('.');
       return `  - ${errPath}: ${err.message}`;
     }).join('\n');
     throw new Error(`Configuration validation failed:\n${errors}`);
   }
 
-  return result.data as BotConfig;
+  return result.data as ConfigSchema;
 }
 
-export function validateConfig(config: unknown): config is BotConfig {
+export function validateConfig(config: unknown): config is ConfigSchema {
   const result = configSchema.safeParse(config);
   return result.success;
 }
