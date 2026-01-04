@@ -81,18 +81,22 @@ export class PinoLogger implements LoggerPort {
   }
 }
 
-export function createPinoLogger(config?: Partial<LoggerConfig>): LoggerPort {
+let globalRootLogger: LoggerPort | null = null;
+
+export function createPinoLogger(config: { name: string }): void {
   const level = (process.env.LOG_LEVEL ?? "info") as LogLevel;
   const containerId = process.env.CONTAINER_ID;
-  const prettyPrint = process.env.NODE_ENV !== "production";
 
-  const fullConfig: LoggerConfig = {
+  globalRootLogger = new PinoLogger({
+    name: config.name,
     level,
-    name: "ore-smart-bot",
     containerId,
-    prettyPrint,
-    ...config,
-  };
+  });
+}
 
-  return new PinoLogger(fullConfig);
+export function createChildLogger(name: string): LoggerPort {
+  if (!globalRootLogger) {
+    createPinoLogger({ name: "osb" });
+  }
+  return globalRootLogger!.child({ name });
 }

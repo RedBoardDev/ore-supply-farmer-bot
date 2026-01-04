@@ -18,7 +18,7 @@ export { rewardsClaimedEvent } from './events/rewards-claimed.event';
 
 // Infrastructure
 export type { LoggerPort, LogLevel } from "./infrastructure/logger.port";
-export { createPinoLogger, PinoLogger } from "./infrastructure/pino-logger";
+export { createPinoLogger, PinoLogger, createChildLogger } from "./infrastructure/pino-logger";
 
 // Ports (Interfaces)
 export type { BlockchainPort } from './ports/blockchain.port';
