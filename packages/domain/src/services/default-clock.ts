@@ -1,5 +1,5 @@
-import type { ClockPort } from '@osb/domain/ports/clock.port';
-import { SLOTS_PER_SECOND, Slot } from '@osb/domain/value-objects/slot.vo';
+import type { ClockPort } from '../ports/clock.port';
+import { SLOTS_PER_SECOND, Slot } from '../value-objects/slot.vo';
 
 export class DefaultClock implements ClockPort {
   private readonly _slotsPerSecond: number;

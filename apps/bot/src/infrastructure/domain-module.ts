@@ -1,36 +1,25 @@
-import type { EvStrategyConfig } from '@osb/domain';
+
+import type { ConfigSchema, } from '@osb/config';
 import {
-  createDefaultClock,
-  createDefaultEvStrategyService,
-  createDefaultLatencyService,
-  createPinoLogger,
-  type LoggerPort,
+  DefaultClock,
+  DefaultEvStrategyService,
+  DefaultLatencyService,
 } from '@osb/domain';
-import { type Container, getGlobalContainer } from './container';
+import { type Container, getGlobalContainer, } from './container';
 
-export interface DomainModuleConfig {
-  evStrategyConfig: EvStrategyConfig;
-}
 
-export function registerDomainModule(config: DomainModuleConfig): Container {
+export function registerDomainModule(config: ConfigSchema): Container {
   const container = getGlobalContainer();
-
-  // Logger
-  container.registerInstance(
-    'Logger',
-    createPinoLogger({ name: 'osb' })
-  );
-
   // Clock
   container.register(
     'Clock',
-    () => createDefaultClock()
+    () => new DefaultClock()
   );
 
   // Latency Service
   container.register(
     'LatencyService',
-    () => createDefaultLatencyService({
+    () => new DefaultLatencyService({
       slotDurationMs: 400, // ~2.5 slots per second
       smoothing: 0.2,
       initialPrepMs: 400,
@@ -42,10 +31,20 @@ export function registerDomainModule(config: DomainModuleConfig): Container {
   // EV Strategy Service
   container.register(
     'EvStrategyService',
-    () => {
-      const logger = container.resolve<LoggerPort>('Logger');
-      return createDefaultEvStrategyService(config.evStrategyConfig, logger);
-    }
+    () => new DefaultEvStrategyService({
+      baseStakePercent: config.strategy.baseStakePercent,
+      minEvRatio: config.strategy.minEvRatio,
+      capNormalLamports: config.strategy.capNormalLamports,
+      capHighEvLamports: config.strategy.capHighEvLamports,
+      maxPlacementsPerRound: config.strategy.maxPlacementsPerRound,
+      maxExposureLamportsPerRound: config.strategy.maxExposureLamportsPerRound,
+      balanceBufferLamports: config.strategy.balanceBufferLamports,
+      minStakeLamports: config.strategy.minStakeLamports,
+      scanSquareCount: config.strategy.scanSquareCount,
+      includeOreInEv: config.strategy.includeOreInEv,
+      stakeScalingFactor: config.strategy.stakeScalingFactor,
+      volumeDecayPercentPerPlacement: config.strategy.volumeDecayPercentPerPlacement,
+    })
   );
 
   return container;

@@ -35,4 +35,12 @@ export { SLOTS_PER_SECOND, Slot } from "./value-objects/slot.vo";
 export { StakeAmount } from "./value-objects/stake-amount.vo";
 
 // Services
+export type { EvStrategyService, EvStrategyConfig, PlacementDecision } from './services/ev-strategy.service';
+export { DefaultEvStrategyService } from './services/default-ev-strategy.service';
+export type { CheckpointService } from './services/checkpoint.service';
+export { DefaultCheckpointService } from './services/default-checkpoint.service';
+export type { LatencyRecord, LatencySnapshot, LatencyService, LatencyStoragePort } from './services/latency.service';
+export { DefaultLatencyService, FileLatencyStorage } from './services/latency.service';
+export type { MiningCostStrategy, MiningCostConfig, MiningDecision, MiningCostResult, MiningCostInput } from './services/mining-cost-strategy.service';
+export { DefaultMiningCostStrategy } from './services/mining-cost-strategy.service';
 export { DefaultClock } from './services/default-clock';

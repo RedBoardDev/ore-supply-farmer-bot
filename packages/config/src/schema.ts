@@ -51,7 +51,7 @@ export const strategySchema = z.object({
   includeOreInEv: z.boolean().default(true),
   stakeScalingFactor: z.number().min(0).max(10).default(2.0),
   volumeDecayPercentPerPlacement: z.number().min(0).max(10).default(0),
-  miningCost: miningCostSchema,
+  // miningCost: miningCostSchema,
 });
 
 export type StrategyConfig = z.infer<typeof strategySchema>;
@@ -81,13 +81,13 @@ export const placementSchema = z.object({
 export type PlacementConfig = z.infer<typeof placementSchema>;
 
 export const configSchema = z.object({
-  telemetry: telemetrySchema,
-  rpc: rpcSchema,
-  runtime: runtimeSchema,
+  // telemetry: telemetrySchema,
+  // rpc: rpcSchema,
+  // runtime: runtimeSchema,
   strategy: strategySchema,
-  transaction: transactionSchema,
-  claim: claimSchema,
-  placement: placementSchema,
+  // transaction: transactionSchema,
+  // claim: claimSchema,
+  // placement: placementSchema,
 });
 
 export type ConfigSchema = z.infer<typeof configSchema>;
