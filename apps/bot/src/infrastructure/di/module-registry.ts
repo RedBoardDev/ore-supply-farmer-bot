@@ -7,14 +7,15 @@ import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.p
 import type { EvStrategyServicePort } from '@osb/bot/domain/services/ports/ev-strategy.port.d';
 import type { PricePort } from '@osb/bot/domain/services/ports/price.port';
 import { type InstructionCache, InstructionCacheAdapter } from '@osb/bot/infrastructure/adapters/cache/instruction-cache.adapter';
-// import { RoundMetricsManager } from './adapters/round-metrics';
-// import { createRoundStreamManager, type RoundStreamManager } from './adapters/round-stream-manager.adapter';
 import { SlotCacheAdapter } from '@osb/bot/infrastructure/adapters/cache/slot-cache.adapter';
 import { ConsoleNotifierAdapter } from '@osb/bot/infrastructure/adapters/notification/console-notifier.adapter';
 import { DiscordNotifierAdapter } from '@osb/bot/infrastructure/adapters/notification/discord-notifier.adapter';
+import type { DiscordNotifier } from '@osb/bot/infrastructure/adapters/notification/discord-notifier.interface';
 import type { NotificationPort } from '@osb/bot/infrastructure/adapters/notification/ports/notification.port';
 import { type PlacementPrefetcher, PlacementPrefetcherAdapter } from '@osb/bot/infrastructure/adapters/placement-prefetcher.adapter';
 import { LiteJupiterPriceAdapter } from '@osb/bot/infrastructure/adapters/price/lite-jupiter-price.adapter';
+import { type RoundMetricsManager, RoundMetricsManagerAdapter } from '@osb/bot/infrastructure/adapters/round/round-metrics';
+import { type RoundStreamManager, RoundStreamManagerAdapter } from '@osb/bot/infrastructure/adapters/round/round-stream-manager.adapter';
 import { TransactionBuilder } from '@osb/bot/infrastructure/adapters/transaction/transaction-builder';
 import { TransactionSender } from '@osb/bot/infrastructure/adapters/transaction/transaction-sender.adapter';
 import { type BoardWatcher, BoardWatcherAdapter, } from '@osb/bot/infrastructure/adapters/watch/board-watcher.adapter';
@@ -246,38 +247,38 @@ export function moduleRegistry(botConfig: ConfigSchema): Container {
   );
 
   // Round Stream Manager
-  // container.registerInstance<RoundStreamManager>(
-  //   'RoundStreamManager',
-  //   createRoundStreamManager({
-  //     connection: solanaConnection,
-  //     commitment: botConfig.rpc.commitment,
-  //     strategyPlanner: {
-  //       buildPlan: (context: {
-  //         round: any;
-  //         miner: any;
-  //         walletBalanceLamports: bigint;
-  //         priceQuote: any;
-  //         maxPlacements: number;
-  //       }): any[] => {
-  //         try {
-  //           const evStrategy = container.resolve<any>('EvStrategyService');
-  //           const decisions = evStrategy.calculateDecisions(
-  //             undefined,
-  //             context.round,
-  //             context.miner,
-  //             context.priceQuote?.orePerSol ?? 0.5,
-  //             context.priceQuote?.netOrePerSol ?? 0.45,
-  //             context.walletBalanceLamports
-  //           );
-  //           return decisions;
-  //         } catch (error) {
-  //           log.debug(`Stream buildPlan failed: ${(error as Error).message}`);
-  //           return [];
-  //         }
-  //       },
-  //     },
-  //   })
-  // );
+  container.registerInstance<RoundStreamManager>(
+    'RoundStreamManager',
+    new RoundStreamManagerAdapter({
+      connection: solanaConnection,
+      commitment: botConfig.rpc.commitment,
+      strategyPlanner: {
+        buildPlan: (context: {
+          round: any;
+          miner: any;
+          walletBalanceLamports: bigint;
+          priceQuote: any;
+          maxPlacements: number;
+        }): any[] => {
+          try {
+            const evStrategy = container.resolve<any>('EvStrategyService');
+            const decisions = evStrategy.calculateDecisions(
+              undefined,
+              context.round,
+              context.miner,
+              context.priceQuote?.orePerSol ?? 0.5,
+              context.priceQuote?.netOrePerSol ?? 0.45,
+              context.walletBalanceLamports
+            );
+            return decisions;
+          } catch (error) {
+            log.debug(`Stream buildPlan failed: ${(error as Error).message}`);
+            return [];
+          }
+        },
+      },
+    })
+  );
 
   // Placement Prefetcher
   container.registerInstance<PlacementPrefetcher>(
@@ -290,10 +291,10 @@ export function moduleRegistry(botConfig: ConfigSchema): Container {
   );
 
   // Round Metrics Manager
-  // container.registerInstance<RoundMetricsManager>(
-  //   'RoundMetricsManager',
-  //   new RoundMetricsManager()
-  // );
+  container.registerInstance<RoundMetricsManager>(
+    'RoundMetricsManager',
+    new RoundMetricsManagerAdapter(container.resolve<DiscordNotifier>('DiscordNotifier'))
+  );
 
   // Mining Cost Strategy
   container.registerInstance<MiningCostStrategy>(

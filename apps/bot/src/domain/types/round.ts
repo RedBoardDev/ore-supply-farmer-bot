@@ -1,4 +1,4 @@
-import type { PriceQuote } from '@osb/domain';
+import type { PriceQuote } from '@osb/bot/domain/services/ports/price.port.d';
 import type { BudgetInfo } from './budget-info';
 import type { PreparedPlacement } from './prepared-placement';
 
