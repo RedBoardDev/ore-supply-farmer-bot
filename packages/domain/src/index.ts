@@ -1,8 +1,8 @@
 /** biome-ignore-all assist/source/organizeImports: brroken feature */
 // Aggregates
-export type { Board, BoardProps } from "./aggregates/board.aggregate";
-export type { Miner, MinerProps } from "./aggregates/miner.aggregate";
-export type { Round, RoundProps } from "./aggregates/round.aggregate";
+export { Board, type BoardProps } from "./aggregates/board.aggregate";
+export { Miner, type MinerProps } from "./aggregates/miner.aggregate";
+export { Round, type RoundProps } from "./aggregates/round.aggregate";
 
 // Domain Events
 export type { RoundStartedEventData } from './events/round-started.event';
