@@ -28,7 +28,7 @@ import { type Container, getGlobalContainer } from './container';
 
 const log = createChildLogger('bot-registry');
 
-export function moduleRegistry(botConfig: ConfigSchema): Container {
+export function IoCmoduleRegistry(botConfig: ConfigSchema): Container {
   const container = getGlobalContainer();
 
   container.registerInstance('BotConfig', botConfig);

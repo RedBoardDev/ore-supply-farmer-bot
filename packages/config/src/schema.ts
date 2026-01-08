@@ -17,13 +17,13 @@ export const rpcSchema = z.object({
 export type RpcConfig = z.infer<typeof rpcSchema>;
 
 export const runtimeSchema = z.object({
-  // dryRun: z.boolean().default(true),
-  autoMinSlots: z.number().int().min(1).max(50).default(1),
-  autoMaxSlots: z.number().int().min(1).max(50).default(5),
-  autoSafetySlots: z.number().int().min(0).max(10).default(1),
-  overheadPerPlacementMs: z.number().int().min(0).max(200).default(10),
-  parallelismFactor: z.number().min(1).max(5).default(1.5),
-  prepSlotsAhead: z.number().int().min(0).max(20).default(3),
+  dryRun: z.boolean().default(true),
+  // autoMinSlots: z.number().int().min(1).max(50).default(1),
+  // autoMaxSlots: z.number().int().min(1).max(50).default(5),
+  // autoSafetySlots: z.number().int().min(0).max(10).default(1),
+  // overheadPerPlacementMs: z.number().int().min(0).max(200).default(10),
+  // parallelismFactor: z.number().min(1).max(5).default(1.5),
+  // prepSlotsAhead: z.number().int().min(0).max(20).default(3),
   latencyMetricsPath: z.string().min(1).default('data/latency-history.ndjson'),
   latencyHistorySize: z.number().int().min(10).max(100_000).default(100),
 });
@@ -51,41 +51,41 @@ export const strategySchema = z.object({
   includeOreInEv: z.boolean().default(true),
   stakeScalingFactor: z.number().min(0).max(10).default(2.0),
   volumeDecayPercentPerPlacement: z.number().min(0).max(10).default(0),
-  // miningCost: miningCostSchema,
 });
 
 export type StrategyConfig = z.infer<typeof strategySchema>;
 
 export const transactionSchema = z.object({
-  priorityFeeMicrolamports: z.number().int().min(0).max(1_000_000).default(150_000),
-  computeUnitLimit: z.number().int().min(50_000).max(1_400_000).default(220_000),
+  // priorityFeeMicrolamports: z.number().int().min(0).max(1_000_000).default(150_000),
+  // computeUnitLimit: z.number().int().min(50_000).max(1_400_000).default(220_000),
   skipPreflight: z.boolean().default(true),
-  confirmationCommitment: z.enum(['processed', 'confirmed', 'finalized']).default('processed'),
-  awaitConfirmation: z.boolean().default(false),
-  awaitProcessed: z.boolean().default(false),
+  // confirmationCommitment: z.enum(['processed', 'confirmed', 'finalized']).default('processed'),
+  // awaitConfirmation: z.boolean().default(false),
+  // awaitProcessed: z.boolean().default(false),
 });
 
 export type TransactionConfig = z.infer<typeof transactionSchema>;
 
 export const claimSchema = z.object({
-  thresholdSol: z.number().min(0).default(0),
+  // thresholdSol: z.number().min(0).default(0),
 });
 
 export type ClaimConfig = z.infer<typeof claimSchema>;
 
 export const placementSchema = z.object({
-  amountLamports: z.number().int().min(1).default(1_000_000),
-  squareCount: z.number().int().min(1).max(100).default(25),
+  // amountLamports: z.number().int().min(1).default(1_000_000),
+  // squareCount: z.number().int().min(1).max(100).default(25),
 });
 
 export type PlacementConfig = z.infer<typeof placementSchema>;
 
 export const configSchema = z.object({
-  // telemetry: telemetrySchema,
-  // rpc: rpcSchema,
-  // runtime: runtimeSchema,
+  telemetry: telemetrySchema,
+  rpc: rpcSchema,
+  runtime: runtimeSchema,
   strategy: strategySchema,
-  // transaction: transactionSchema,
+  miningCost: miningCostSchema,
+  transaction: transactionSchema,
   // claim: claimSchema,
   // placement: placementSchema,
 });
