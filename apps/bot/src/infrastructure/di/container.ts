@@ -18,6 +18,13 @@ export class Container {
   private registrations = new Map<Token<any>, Registration<any>>();
   private instances = new Map<Token<any>, any>();
 
+  /**
+   * Register a new dependency.
+   * @param token - The token to register the dependency under.
+   * @param factory - The factory function to create the dependency.
+   * @param options - The options for the registration (singleton: true by default).
+   * @returns The container instance.
+   */
   register<T>(
     token: Token<T>,
     factory: Factory<T>,
@@ -30,6 +37,14 @@ export class Container {
     return this;
   }
 
+  /**
+   * Register a new dependency instance.
+   *
+   * singleton: true by default.
+   * @param token - The token to register the dependency under.
+   * @param instance - The instance to register.
+   * @returns The container instance.
+   */
   registerInstance<T>(token: Token<T>, instance: T): this {
     this.registrations.set(token, {
       singleton: true,

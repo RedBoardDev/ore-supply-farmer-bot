@@ -1,5 +1,5 @@
 import { createChildLogger, createPinoLogger } from '@osb/domain';
-import { OreBot } from './application/bot';
+import { Core } from './application/orchestrator/core';
 
 createPinoLogger({ name: 'osb' });
 
@@ -8,11 +8,11 @@ const log = createChildLogger('main');
 async function main(): Promise<void> {
   log.info('OSB starting...');
 
-  const bot = new OreBot();
+  const core = new Core();
 
   const shutdown = async (signal: string) => {
     log.info(`Received ${signal}, shutting down gracefully...`);
-    await bot.stop();
+    await core.stop();
     log.info('Shutdown complete');
     process.exit(0);
   };
@@ -21,11 +21,11 @@ async function main(): Promise<void> {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 
   try {
-    await bot.start();
+    await core.start();
 
     // Keep process alive
     if (process.env.NODE_ENV !== 'test') {
-      log.info('Bot is running. Press Ctrl+C to stop.');
+      log.info('Core is running. Press Ctrl+C to stop.');
       // Prevent process from exiting
       await new Promise(() => { });
     }
