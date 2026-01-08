@@ -7,6 +7,6 @@
     "declaration": true,
     "declarationMap": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../../apps/bot/src/domain/services/ports/ev-strategy.port.ts", "../../apps/bot/src/domain/services/ports/checkpoint.port.ts", "../../apps/bot/src/domain/services/default-clock.ts", "../../apps/bot/src/domain/services/latency.service.ts", "../../apps/bot/src/domain/services/mining-cost-strategy.service.ts", "../../apps/bot/src/domain/services/ports/clock.port.ts", "../../apps/bot/src/domain/services/ports/blockchain.port.ts", "../../apps/bot/src/domain/services/ev-strategy.service.ts", "../../apps/bot/src/domain/services/ports/storage.port.ts", "../../apps/bot/src/domain/services/ports/price.port.ts", "../../apps/bot/src/infrastructure/adapters/notification/ports/notification.port.ts"],
   "exclude": ["node_modules", "dist"]
 }

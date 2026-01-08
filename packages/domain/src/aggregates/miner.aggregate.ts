@@ -1,6 +1,7 @@
-import type { SolanaAddress } from '@osb/domain/ports/blockchain.port';
 import { Lamports } from '@osb/domain/value-objects/lamports.vo';
 import type { RoundId } from '@osb/domain/value-objects/round-id.vo';
+
+export type SolanaAddress = string;
 
 export interface MinerProps {
   readonly authority: SolanaAddress;

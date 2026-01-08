@@ -1,5 +1,4 @@
 // 1 SOL = 10^9 lamports
-
 export const LAMPORTS_PER_SOL = 1_000_000_000;
 
 export interface LamportsProps {
