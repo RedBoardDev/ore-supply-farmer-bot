@@ -1,4 +1,4 @@
-import { createChildLogger, createPinoLogger } from '@osb/domain';
+import { createChildLogger, createPinoLogger } from '@osb/bot/infrastructure/logging/pino-logger';
 import { Core } from './application/orchestrator/core';
 
 createPinoLogger({ name: 'osb' });

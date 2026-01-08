@@ -1,3 +1,4 @@
+import { type PlacementPrefetcher, PlacementPrefetcherAdapter } from '@osb/bot/application/use-cases/execute-placement/prefetcher/placement-prefetcher';
 import { CheckpointService } from '@osb/bot/domain/services/checkpoint.service';
 import { ClockService } from '@osb/bot/domain/services/default-clock';
 import { EvStrategyService } from '@osb/bot/domain/services/ev-strategy.service';
@@ -12,7 +13,6 @@ import { ConsoleNotifierAdapter } from '@osb/bot/infrastructure/adapters/notific
 import { DiscordNotifierAdapter } from '@osb/bot/infrastructure/adapters/notification/discord-notifier.adapter';
 import type { DiscordNotifier } from '@osb/bot/infrastructure/adapters/notification/discord-notifier.interface';
 import type { NotificationPort } from '@osb/bot/infrastructure/adapters/notification/ports/notification.port';
-import { type PlacementPrefetcher, PlacementPrefetcherAdapter } from '@osb/bot/infrastructure/adapters/placement-prefetcher.adapter';
 import { LiteJupiterPriceAdapter } from '@osb/bot/infrastructure/adapters/price/lite-jupiter-price.adapter';
 import { type RoundMetricsManager, RoundMetricsManagerAdapter } from '@osb/bot/infrastructure/adapters/round/round-metrics';
 import { type RoundStreamManager, RoundStreamManagerAdapter } from '@osb/bot/infrastructure/adapters/round/round-stream-manager.adapter';
@@ -97,8 +97,7 @@ export function moduleRegistry(botConfig: ConfigSchema): Container {
       } catch (error) {
         throw new Error(`Failed to parse wallet keypair: ${(error as Error).message}`);
       }
-    },
-    { singleton: true }
+    }
   );
 
   // Authority Keypair (for transactions) - only in live mode
