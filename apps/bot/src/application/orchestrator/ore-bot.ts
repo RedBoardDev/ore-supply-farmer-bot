@@ -65,12 +65,8 @@ export abstract class OreBot {
     return this.container.resolve<InstructionCache>('InstructionCache');
   }
 
-  protected getRoundMetricsManager(): RoundMetricsManager | null {
-    try {
-      return this.container.resolve<RoundMetricsManager>('RoundMetricsManager');
-    } catch {
-      return null;
-    }
+  protected getRoundMetricsManager(): RoundMetricsManager {
+    return this.container.resolve<RoundMetricsManager>('RoundMetricsManager');
   }
 
   // ============================================================================
