@@ -1,4 +1,5 @@
-import type { PriceQuote } from '@osb/bot/domain/services/ports/price.port.d';
+import type { MinerAccount } from '@osb/bot/application/decoders';
+import type { PriceQuote } from '@osb/bot/domain/services/ports/price.port';
 import type { BudgetInfo } from './budget-info';
 import type { PreparedPlacement } from './prepared-placement';
 
@@ -15,7 +16,7 @@ export interface RoundMetrics extends SimpleRoundMetrics {
 
 export interface RoundStreamContext {
   roundId: bigint;
-  miner: any;
+  miner: MinerAccount;
   walletBalanceLamports: bigint;
   priceQuote: PriceQuote;
   maxPlacements: number;

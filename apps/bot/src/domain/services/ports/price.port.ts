@@ -1,6 +1,6 @@
 export interface PriceQuote {
-  readonly orePerSol: number;
-  readonly netOrePerSol: number;
+  readonly solPerOre: number;
+  readonly netSolPerOre: number;
   readonly fetchedAt: number;
 }
 

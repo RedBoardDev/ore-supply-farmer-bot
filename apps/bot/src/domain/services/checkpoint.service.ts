@@ -1,7 +1,8 @@
 import type { Miner, SolanaAddress } from '@osb/domain/aggregates/miner.aggregate';
 import type { RoundId } from '@osb/domain/value-objects/round-id.vo';
+import type { CheckpointServicePort } from './ports/checkpoint.port';
 
-export class CheckpointService implements CheckpointService {
+export class CheckpointService implements CheckpointServicePort {
   private lastCheckpointedRound: bigint | null = null;
   private inflight = new Map<bigint, Promise<boolean>>();
 
@@ -29,7 +30,7 @@ export class CheckpointService implements CheckpointService {
     miner: Miner,
     _currentRoundId: RoundId,
     authorityAddress: SolanaAddress,
-    submitFn: (instructionData: Uint8Array) => Promise<{ signature: string }>
+    submitFn: (instructionData: Uint8Array) => Promise<{ signature: string }>,
   ): Promise<boolean> {
     const targetRound = miner.roundId;
 
@@ -76,7 +77,7 @@ export class CheckpointService implements CheckpointService {
   private async submitCheckpoint(
     _roundId: bigint,
     _authorityAddress: SolanaAddress,
-    submitFn: (instructionData: Uint8Array) => Promise<{ signature: string }>
+    submitFn: (instructionData: Uint8Array) => Promise<{ signature: string }>,
   ): Promise<boolean> {
     try {
       // Checkpoint instruction is just the opcode (2)

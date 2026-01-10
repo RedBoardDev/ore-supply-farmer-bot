@@ -27,12 +27,12 @@ export interface PlacementDecision {
 
 export interface EvStrategyServicePort {
   calculateDecisions(
-    board: Board,
+    board: Board | null,
     round: Round,
     miner: Miner,
-    orePerSol: number,
-    netOrePerSol: number,
-    walletBalanceLamports: bigint
+    solPerOre: number,
+    netSolPerOre: number,
+    walletBalanceLamports: bigint,
   ): PlacementDecision[];
   recalculateEv(params: {
     squareIndex: number;

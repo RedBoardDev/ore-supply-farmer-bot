@@ -1,7 +1,7 @@
 import type { Miner, SolanaAddress } from '@osb/domain/aggregates/miner.aggregate';
 import type { RoundId } from '@osb/domain/value-objects/round-id.vo';
 
-export interface CheckpointService {
+export interface CheckpointServicePort {
   /**
    * Notify that a new round has started.
    * Allows the service to reset its internal state and prepare for the new round.
@@ -21,6 +21,6 @@ export interface CheckpointService {
     miner: Miner,
     currentRoundId: RoundId,
     authorityAddress: SolanaAddress,
-    submitFn: (instructionData: Uint8Array) => Promise<{ signature: string }>
+    submitFn: (instructionData: Uint8Array) => Promise<{ signature: string }>,
   ): Promise<boolean>;
 }
