@@ -22,6 +22,7 @@ export const envSchema = z
     RPC_HTTP_ENDPOINT: z.url().trim(),
     RPC_WS_ENDPOINT: z.url().trim(),
     DISCORD_WEBHOOK_URL: optionalUrlSchema,
+    JUPITER_API_KEY: z.string().trim().min(1),
   })
   .strict();
 

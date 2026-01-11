@@ -86,7 +86,6 @@ export const timingSchema = z
     overheadMs: z.number().int().min(0).max(200).default(10),
     parallelismFactor: z.number().min(1).max(5).default(1.5),
     prepSlotsAhead: z.number().int().min(0).max(20).default(3),
-    streamFreshnessMs: z.number().int().min(1).max(10_000).default(150),
     latencyMetricsPath: z.string().min(1).default("data/latency-history.ndjson"),
     latencyHistorySize: z.number().int().min(10).max(100_000).default(100),
     latencyService: z
@@ -169,6 +168,7 @@ export type MiningCostConfig = z.infer<typeof miningCostSchema>;
 
 export const configFileSchema = z
   .object({
+    fastMode: z.boolean().default(true),
     telemetry: telemetryFileSchema,
     rpc: rpcFileSchema,
     timing: timingSchema,

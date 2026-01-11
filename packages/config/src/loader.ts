@@ -1,16 +1,11 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ZodIssue } from "zod";
-import {
-  type ConfigFileSchema,
-  type ConfigSchema,
-  configFileSchema,
-  configSchema
-} from "./config";
+import { type ConfigFileSchema, type ConfigSchema, configFileSchema, configSchema } from "./config";
 import { type EnvSchema, envSchema } from "./env";
 
 const DEFAULT_CONFIG_PATH = path.resolve(process.cwd(), "config/config.json");
-const DEFAULT_ENV_PATH = path.resolve(process.cwd(), ".env");
+const DEFAULT_ENV_PATH = path.resolve(process.cwd(), "config/.env");
 
 export interface LoadOptions {
   configPath?: string;

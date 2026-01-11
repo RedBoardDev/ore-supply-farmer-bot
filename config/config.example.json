@@ -2,6 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$comment": "ORE bot configuration",
 
+  "fastMode": true,
+
   "telemetry": {
     "logLevel": "warn",
     "traceErrors": false
@@ -18,7 +20,6 @@
     "overheadMs": 10,
     "parallelismFactor": 1.5,
     "prepSlotsAhead": 3,
-    "streamFreshnessMs": 150,
     "latencyMetricsPath": "data/latency-history.ndjson",
     "latencyHistorySize": 100,
     "latencyService": {
