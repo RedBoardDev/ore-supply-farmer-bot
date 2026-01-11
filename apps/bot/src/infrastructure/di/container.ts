@@ -4,9 +4,9 @@
  * IoC container for dependency management.
  */
 
-type Constructor<T = any> = new (...args: any[]) => T;
-type Factory<T = any> = () => T;
-type Token<T = any> = string | symbol | Constructor<T>;
+type Constructor<T = unknown> = new (...args: unknown[]) => T;
+type Factory<T = unknown> = () => T;
+type Token<T = unknown> = string | symbol | Constructor<T>;
 
 interface Registration<T> {
   singleton: boolean;
@@ -15,8 +15,8 @@ interface Registration<T> {
 }
 
 export class Container {
-  private registrations = new Map<Token<any>, Registration<any>>();
-  private instances = new Map<Token<any>, any>();
+  private registrations = new Map<Token<unknown>, Registration<unknown>>();
+  private instances = new Map<Token<unknown>, unknown>();
 
   /**
    * Register a new dependency.
@@ -25,11 +25,7 @@ export class Container {
    * @param options - The options for the registration (singleton: true by default).
    * @returns The container instance.
    */
-  register<T>(
-    token: Token<T>,
-    factory: Factory<T>,
-    options: { singleton?: boolean } = {}
-  ): this {
+  register<T>(token: Token<T>, factory: Factory<T>, options: { singleton?: boolean } = {}): this {
     this.registrations.set(token, {
       singleton: options.singleton ?? true,
       factory,
@@ -57,11 +53,11 @@ export class Container {
   resolve<T>(token: Token<T>): T {
     // Singleton checker
     if (this.instances.has(token)) {
-      return this.instances.get(token);
+      return this.instances.get(token) as T;
     }
 
     // Registration checker
-    const registration = this.registrations.get(token);
+    const registration = this.registrations.get(token) as Registration<T> | undefined;
     if (!registration) {
       throw new Error(`No registration found for token: ${String(token)}`);
     }
@@ -77,7 +73,7 @@ export class Container {
     return instance;
   }
 
-  has(token: Token<any>): boolean {
+  has(token: Token<unknown>): boolean {
     return this.registrations.has(token);
   }
 
