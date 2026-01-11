@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "ORE bot configuration",
+
+  "telemetry": {
+    "logLevel": "warn",
+    "traceErrors": false
+  },
+
+  "rpc": {
+    "commitment": "processed"
+  },
+
+  "timing": {
+    "minSlots": 1,
+    "maxSlots": 5,
+    "safetySlots": 1,
+    "overheadMs": 10,
+    "parallelismFactor": 1.5,
+    "prepSlotsAhead": 3,
+    "streamFreshnessMs": 150,
+    "latencyMetricsPath": "data/latency-history.ndjson",
+    "latencyHistorySize": 100,
+    "latencyService": {
+      "slotDurationMs": 400,
+      "smoothing": 0.2,
+      "initialPrepMs": 400,
+      "initialExecPerPlacementMs": 160,
+      "maxSamples": 200
+    },
+    "queueOverheadMaxMs": 30,
+    "queueOverheadFactor": 8
+  },
+
+  "strategy": {
+    "baseStakePercent": 0.015,
+    "minStakeLamports": 1000000,
+    "capNormalLamports": 500000000,
+    "capHighEvLamports": 1000000000,
+    "minEvRatio": 1.0,
+    "maxPlacementsPerRound": 12,
+    "maxExposureLamportsPerRound": null,
+    "balanceBufferLamports": 100000000,
+    "scanSquareCount": 25,
+    "includeOreInEv": true,
+    "stakeScalingFactor": 2.0,
+    "stakeDecayPercent": 0
+  },
+
+  "transaction": {
+    "priorityFeeMicrolamports": 150000,
+    "computeUnitLimit": 220000,
+    "skipPreflight": true,
+    "awaitProcessed": false,
+    "awaitConfirmation": false,
+    "confirmationMode": "processed",
+    "maxRetriesMain": 5,
+    "maxRetriesDefault": 3
+  },
+
+  "claim": {
+    "thresholdSol": 0
+  },
+
+  "miningCost": {
+    "enabled": false,
+    "thresholdPercent": 5,
+    "historyRounds": 10
+  }
+}
