@@ -17,7 +17,7 @@ interface BlockhashCacheOptions {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class BlockhashCacheAdapter implements BlockhashCache {
@@ -26,9 +26,7 @@ export class BlockhashCacheAdapter implements BlockhashCache {
   private running = false;
   private inflight: Promise<BlockhashWithExpiryBlockHeight> | null = null;
 
-  constructor(
-    private readonly options: BlockhashCacheOptions
-  ) { }
+  constructor(private readonly options: BlockhashCacheOptions) {}
 
   start(): void {
     if (this.running) {

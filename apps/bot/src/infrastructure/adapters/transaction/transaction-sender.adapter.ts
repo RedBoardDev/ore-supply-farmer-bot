@@ -1,9 +1,5 @@
 import type { ConfigSchema } from '@osb/config';
-import type {
-  Connection,
-  Keypair,
-  Transaction,
-} from '@solana/web3.js';
+import type { Connection, Keypair, Transaction } from '@solana/web3.js';
 import type { SendOptions, SendResult } from './types';
 
 export class TransactionSender {
@@ -15,11 +11,7 @@ export class TransactionSender {
     this.config = config;
   }
 
-  async send(
-    transaction: Transaction,
-    signers: Keypair[],
-    options?: SendOptions
-  ): Promise<SendResult> {
+  async send(transaction: Transaction, signers: Keypair[], options?: SendOptions): Promise<SendResult> {
     try {
       // Set fee payer from first signer
       const firstSigner = signers[0];
@@ -28,28 +20,34 @@ export class TransactionSender {
       }
 
       // Sign with all signers
-      for (const signer of signers) {
-        transaction.sign(signer);
+      if (signers.length > 0) {
+        transaction.sign(...signers);
       }
 
       // Get or use existing blockhash
       let blockhashInfo: { blockhash: string; lastValidBlockHeight: number };
-      if (transaction.recentBlockhash && options?.useCachedBlockhash) {
+      const confirmationCommitment = options?.confirmationCommitment ?? this.config.transaction.confirmationMode;
+      const cachedContext = options?.blockhashContext;
+      if (
+        transaction.recentBlockhash &&
+        options?.useCachedBlockhash &&
+        cachedContext &&
+        cachedContext.blockhash === transaction.recentBlockhash
+      ) {
+        blockhashInfo = cachedContext;
+      } else if (transaction.recentBlockhash && options?.useCachedBlockhash) {
         // Use the already-set blockhash (from cache)
-        // We need to fetch lastValidBlockHeight for confirmation
-        const latest = await this.connection.getLatestBlockhash();
+        // We still need lastValidBlockHeight for confirmation
+        const latest = await this.connection.getLatestBlockhash(confirmationCommitment);
         blockhashInfo = {
           blockhash: transaction.recentBlockhash,
           lastValidBlockHeight: latest.lastValidBlockHeight,
         };
       } else {
         // Get fresh blockhash
-        blockhashInfo = await this.connection.getLatestBlockhash('confirmed');
+        blockhashInfo = await this.connection.getLatestBlockhash(confirmationCommitment);
         transaction.recentBlockhash = blockhashInfo.blockhash;
       }
-
-      // Determine confirmation commitment (config default, can be overridden)
-      const confirmationCommitment = options?.confirmationCommitment ?? this.config.rpc.commitment;
 
       // Serialize and send
       const serialized = transaction.serialize({
@@ -59,24 +57,59 @@ export class TransactionSender {
 
       const signature = await this.connection.sendRawTransaction(serialized, {
         skipPreflight: this.config.transaction.skipPreflight,
-        preflightCommitment: 'confirmed',
-        maxRetries: 5,
+        preflightCommitment: confirmationCommitment,
+        maxRetries: this.config.transaction.maxRetriesMain,
       });
 
-      // Wait for confirmation with specified commitment
-      const confirmation = await this.connection.confirmTransaction(
+      const awaitConfirmation = options?.awaitConfirmation ?? false;
+      const awaitProcessed = options?.awaitProcessed ?? false;
+
+      const confirmationPromise = this.connection.confirmTransaction(
         {
           signature,
           blockhash: blockhashInfo.blockhash,
           lastValidBlockHeight: blockhashInfo.lastValidBlockHeight,
         },
-        confirmationCommitment
+        confirmationCommitment,
       );
+
+      if (awaitConfirmation) {
+        const confirmation = await confirmationPromise;
+        return {
+          signature,
+          confirmed: !confirmation.value.err,
+          error: confirmation.value.err?.toString(),
+        };
+      }
+
+      if (awaitProcessed) {
+        const processedPromise =
+          confirmationCommitment === 'processed'
+            ? confirmationPromise
+            : this.connection.confirmTransaction(
+                {
+                  signature,
+                  blockhash: blockhashInfo.blockhash,
+                  lastValidBlockHeight: blockhashInfo.lastValidBlockHeight,
+                },
+                'processed',
+              );
+
+        const processed = await processedPromise;
+        return {
+          signature,
+          confirmed: !processed.value.err,
+          error: processed.value.err?.toString(),
+        };
+      }
+
+      void confirmationPromise.catch(() => {
+        // Fire-and-forget confirmation should not crash the loop.
+      });
 
       return {
         signature,
-        confirmed: !confirmation.value.err,
-        error: confirmation.value.err?.toString(),
+        confirmed: true,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -91,7 +124,7 @@ export class TransactionSender {
   async sendWithRetry(
     transaction: Transaction,
     signers: Keypair[],
-    maxRetries: number = 3
+    maxRetries: number = this.config.transaction.maxRetriesDefault,
   ): Promise<SendResult> {
     let lastError: string | undefined;
 
@@ -109,7 +142,7 @@ export class TransactionSender {
         if (this.isRetryableError(result.error)) {
           // Wait before retry with exponential backoff
           const delayMs = 2 ** attempt * 100;
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
           continue;
         }
       }
@@ -135,27 +168,6 @@ export class TransactionSender {
       'too many requests',
     ];
 
-    return retryablePatterns.some(pattern =>
-      error.toLowerCase().includes(pattern.toLowerCase())
-    );
-  }
-
-  async simulate(transaction: Transaction): Promise<{ success: boolean; error?: string }> {
-    try {
-      // TypeScript doesn't like Transaction here, but it works at runtime
-      const result = await (this.connection.simulateTransaction as any)(transaction, {
-        commitment: 'confirmed',
-      });
-
-      return {
-        success: !result.value.err,
-        error: result.value.err?.toString(),
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
+    return retryablePatterns.some((pattern) => error.toLowerCase().includes(pattern.toLowerCase()));
   }
 }

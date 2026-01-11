@@ -1,6 +1,6 @@
 import { decodeRoundAccount, type MinerAccount, type RoundAccount } from '@osb/bot/application/decoders';
 import type { PlacementDecision } from '@osb/bot/domain/services/ports/ev-strategy.port';
-import type { PriceQuote } from '@osb/bot/domain/services/ports/price.port.d';
+import type { PriceQuote } from '@osb/bot/domain/services/ports/price.port';
 import type { RoundStreamContext } from '@osb/bot/domain/types/round';
 import { deriveRoundPda } from '@osb/bot/infrastructure/constants';
 import { createChildLogger } from '@osb/bot/infrastructure/logging/pino-logger';
@@ -53,9 +53,7 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
   private totalUpdates = 0;
   private lastRefreshDurationMs = 0;
 
-  constructor(
-    private readonly options: RoundStreamManagerOptions
-  ) { }
+  constructor(private readonly options: RoundStreamManagerOptions) {}
 
   start(context: RoundStreamContext): void {
     if (this.isActive && this.currentRoundId === context.roundId) {
@@ -81,16 +79,14 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
         (accountInfo: AccountInfo<Buffer>, ctx) => {
           this.handleAccountUpdate(accountInfo, ctx.slot);
         },
-        commitment
+        commitment,
       );
 
       log.debug(
-        `Round ${context.roundId.toString()}: WebSocket subscribed (id=${this.subscriptionId}, commitment=${commitment})`
+        `Round ${context.roundId.toString()}: WebSocket subscribed (id=${this.subscriptionId}, commitment=${commitment})`,
       );
     } catch (error) {
-      log.error(
-        `Round ${context.roundId.toString()}: Failed to subscribe to WebSocket: ${(error as Error).message}`
-      );
+      log.error(`Round ${context.roundId.toString()}: Failed to subscribe to WebSocket: ${(error as Error).message}`);
       this.isActive = false;
       return;
     }
@@ -107,7 +103,7 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
       this.recalculateEv();
 
       log.debug(
-        `Round ${context.roundId.toString()}: Initial Round data fetched and EV calculated (${this.evCache.length} decisions)`
+        `Round ${context.roundId.toString()}: Initial Round data fetched and EV calculated (${this.evCache.length} decisions)`,
       );
     });
   }
@@ -154,14 +150,14 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
 
       if (round.id !== this.context.roundId) {
         log.warn(
-          `Round ${this.context.roundId.toString()}: WebSocket update has mismatched roundId=${round.id.toString()}`
+          `Round ${this.context.roundId.toString()}: WebSocket update has mismatched roundId=${round.id.toString()}`,
         );
         return;
       }
 
       if (slot < this.lastUpdateSlot) {
         log.debug(
-          `Round ${this.context.roundId.toString()}: Ignoring stale WebSocket update (slot ${slot} < ${this.lastUpdateSlot})`
+          `Round ${this.context.roundId.toString()}: Ignoring stale WebSocket update (slot ${slot} < ${this.lastUpdateSlot})`,
         );
         this.missedUpdates++;
         return;
@@ -177,16 +173,16 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
       if (hasChanges) {
         this.recalculateEv();
         log.debug(
-          `Round ${this.context.roundId.toString()}: WebSocket update at slot ${slot} (changes detected, EV recalculated, top EV=${this.evCache[0]?.evRatio.toFixed(3) ?? 'N/A'})`
+          `Round ${this.context.roundId.toString()}: WebSocket update at slot ${slot} (changes detected, EV recalculated, top EV=${this.evCache[0]?.evRatio.toFixed(3) ?? 'N/A'})`,
         );
       } else {
         log.debug(
-          `Round ${this.context.roundId.toString()}: WebSocket update at slot ${slot} (no changes in deployed amounts)`
+          `Round ${this.context.roundId.toString()}: WebSocket update at slot ${slot} (no changes in deployed amounts)`,
         );
       }
     } catch (error) {
       log.error(
-        `Round ${this.context.roundId.toString()}: Failed to decode WebSocket update: ${(error as Error).message}`
+        `Round ${this.context.roundId.toString()}: Failed to decode WebSocket update: ${(error as Error).message}`,
       );
     }
   }
@@ -216,7 +212,7 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
       miner: this.context.miner,
       walletBalanceLamports: this.context.walletBalanceLamports,
       priceQuote: this.context.priceQuote,
-      maxPlacements: this.context.maxPlacements
+      maxPlacements: this.context.maxPlacements,
     });
 
     this.evCache = plan;
@@ -254,7 +250,7 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
       totalUpdates: this.totalUpdates,
       missedUpdates: this.missedUpdates,
       cacheAgeMs: this.getCacheAge(),
-      isActive: this.isActive
+      isActive: this.isActive,
     };
   }
 
@@ -287,9 +283,7 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
       return false;
     }
 
-    log.debug(
-      `Round ${roundId.toString()}: Cache stale (${ageMs}ms), forcing HTTP refresh`
-    );
+    log.debug(`Round ${roundId.toString()}: Cache stale (${ageMs}ms), forcing HTTP refresh`);
 
     this.fetchInProgress = true;
     const refreshStart = Date.now();
@@ -311,17 +305,13 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
 
       if (hasChanges) {
         this.recalculateEv();
-        log.debug(
-          `Round ${roundId.toString()}: HTTP refresh complete (changes detected, EV recalculated)`
-        );
+        log.debug(`Round ${roundId.toString()}: HTTP refresh complete (changes detected, EV recalculated)`);
       }
 
       return true;
     } catch (error) {
       const label = this.context?.roundId ?? roundId;
-      log.error(
-        `Round ${label.toString()}: HTTP refresh failed: ${(error as Error).message}`
-      );
+      log.error(`Round ${label.toString()}: HTTP refresh failed: ${(error as Error).message}`);
       return false;
     } finally {
       this.fetchInProgress = false;
@@ -352,25 +342,19 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
 
       if (hasChanges) {
         this.recalculateEv();
-        log.debug(
-          `Round ${roundId.toString()}: Force refresh complete (changes detected, EV recalculated)`
-        );
+        log.debug(`Round ${roundId.toString()}: Force refresh complete (changes detected, EV recalculated)`);
       }
 
       return true;
     } catch (error) {
-      log.error(
-        `Round ${roundId.toString()}: Force refresh failed: ${(error as Error).message}`
-      );
+      log.error(`Round ${roundId.toString()}: Force refresh failed: ${(error as Error).message}`);
       return false;
     } finally {
       this.fetchInProgress = false;
     }
   }
 
-  private async fetchRoundDirect(
-    roundId: bigint
-  ): Promise<{ data: RoundAccount; slot: number } | null> {
+  private async fetchRoundDirect(roundId: bigint): Promise<{ data: RoundAccount; slot: number } | null> {
     try {
       const roundAddress = deriveRoundPda(roundId);
       const accountInfo = await this.options.connection.getAccountInfoAndContext(roundAddress, this.options.commitment);
@@ -390,12 +374,10 @@ export class RoundStreamManagerAdapter implements RoundStreamManager {
       try {
         await this.options.connection.removeAccountChangeListener(this.subscriptionId);
         log.debug(
-          `Round ${this.currentRoundId?.toString() ?? 'unknown'}: WebSocket unsubscribed (id=${this.subscriptionId})`
+          `Round ${this.currentRoundId?.toString() ?? 'unknown'}: WebSocket unsubscribed (id=${this.subscriptionId})`,
         );
       } catch (error) {
-        log.warn(
-          `Failed to unsubscribe WebSocket (id=${this.subscriptionId}): ${(error as Error).message}`
-        );
+        log.warn(`Failed to unsubscribe WebSocket (id=${this.subscriptionId}): ${(error as Error).message}`);
       }
       this.subscriptionId = null;
     }

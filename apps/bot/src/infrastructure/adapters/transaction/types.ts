@@ -37,5 +37,8 @@ export interface SendResult {
 
 export interface SendOptions {
   useCachedBlockhash?: boolean;
+  blockhashContext?: { blockhash: string; lastValidBlockHeight: number };
   confirmationCommitment?: 'confirmed' | 'processed' | 'finalized';
+  awaitConfirmation?: boolean;
+  awaitProcessed?: boolean;
 }

@@ -1,7 +1,12 @@
 import { EventEmitter } from 'node:events';
-import { type BoardAccount, decodeBoardAccount, decodeRoundAccount, type RoundAccount } from '@osb/bot/application/decoders';
+import {
+  type BoardAccount,
+  decodeBoardAccount,
+  decodeRoundAccount,
+  type RoundAccount,
+} from '@osb/bot/application/decoders';
 import { createChildLogger } from '@osb/bot/infrastructure/logging/pino-logger';
-import type { Commitment, Connection, } from '@solana/web3.js';
+import type { Commitment, Connection } from '@solana/web3.js';
 import { BOARD_ADDRESS, deriveRoundPda } from '../../constants';
 
 interface AccountFetchResult<T> {
@@ -17,6 +22,7 @@ export interface BoardWatcher {
   stop(): Promise<void>;
   getBoardSnapshot(): AccountFetchResult<BoardAccount> | null;
   getRoundSnapshot(): AccountFetchResult<RoundAccount> | null;
+  waitForInitialBoard(): Promise<void>;
   ensureRoundLoaded(roundId: bigint): Promise<void>;
   on(event: BoardEvents, callback: (snapshot: AccountFetchResult<BoardAccount>) => void): this;
 }
@@ -40,9 +46,7 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
   private resolveInitialBoard: (() => void) | null = null;
   private started = false;
 
-  constructor(
-    private readonly options: BoardWatcherOptions
-  ) {
+  constructor(private readonly options: BoardWatcherOptions) {
     super();
     this.initialBoardPromise = new Promise<void>((resolve) => {
       this.resolveInitialBoard = resolve;
@@ -63,11 +67,11 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
       return;
     }
     if (this.boardSubscription !== null) {
-      await this.options.connection.removeAccountChangeListener(this.boardSubscription).catch(() => { });
+      await this.options.connection.removeAccountChangeListener(this.boardSubscription).catch(() => {});
       this.boardSubscription = null;
     }
     if (this.roundSubscription !== null) {
-      await this.options.connection.removeAccountChangeListener(this.roundSubscription).catch(() => { });
+      await this.options.connection.removeAccountChangeListener(this.roundSubscription).catch(() => {});
       this.roundSubscription = null;
     }
     this.started = false;
@@ -112,7 +116,7 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
           log.warn(`Failed to process board update: ${(error as Error).message}`);
         }
       },
-      this.options.commitment
+      this.options.commitment,
     );
   }
 
@@ -121,7 +125,7 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
     const snapshot: AccountFetchResult<BoardAccount> = {
       pubkey: BOARD_ADDRESS.toBase58(),
       slot,
-      data: board
+      data: board,
     };
     this.currentBoard = snapshot;
     if (this.resolveInitialBoard) {
@@ -138,7 +142,7 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
     this.currentRoundId = roundId;
     const roundAddress = deriveRoundPda(roundId);
     if (this.roundSubscription !== null) {
-      await this.options.connection.removeAccountChangeListener(this.roundSubscription).catch(() => { });
+      await this.options.connection.removeAccountChangeListener(this.roundSubscription).catch(() => {});
       this.roundSubscription = null;
     }
     // this.currentRoundAddress = roundAddress;
@@ -153,13 +157,13 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
           this.currentRound = {
             pubkey: roundAddress.toBase58(),
             slot: ctx.slot,
-            data: decoded
+            data: decoded,
           };
         } catch (error) {
           log.warn(`Failed to decode round ${roundId.toString()} update: ${(error as Error).message}`);
         }
       },
-      this.options.commitment
+      this.options.commitment,
     );
   }
 
@@ -172,7 +176,7 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
     this.currentRound = {
       pubkey: roundAddress.toBase58(),
       slot: account.context.slot,
-      data: decodeRoundAccount(account.value.data as Buffer)
+      data: decodeRoundAccount(account.value.data as Buffer),
     };
   }
 }

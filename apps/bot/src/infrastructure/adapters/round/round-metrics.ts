@@ -1,19 +1,22 @@
+import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
+import type { PricePort, PriceQuote } from '@osb/bot/domain/services/ports/price.port';
 import type { RoundMetrics } from '@osb/bot/domain/types/round';
+import { ORE_ATOMS_PER_ORE } from '@osb/bot/infrastructure/constants';
 import { getGlobalContainer } from '@osb/bot/infrastructure/di/container';
 import { createChildLogger } from '@osb/bot/infrastructure/logging/pino-logger';
-import { LAMPORTS_PER_SOL } from '@solana/web3.js';
+import type { Miner } from '@osb/domain';
+import { LAMPORTS_PER_SOL, type PublicKey } from '@solana/web3.js';
 import type { DiscordNotifier } from '../notification/discord-notifier.interface';
 
 export interface RoundMetricsManager {
   setBaseline(rewardsSol: bigint): void;
   handleClaimedRewards(amountLamports: bigint): void;
   recordPlacement(roundId: bigint, stakeLamports: bigint, squareIndex: number): void;
+  setPriceQuote(roundId: bigint, priceQuote: PriceQuote | null): void;
   finalizeRounds(currentBoardRound: bigint): Promise<void>;
 }
 
 const log = createChildLogger('round-metrics');
-
-const ORE_ATOMS_PER_ORE = BigInt(100_000_000_000);
 
 export class RoundMetricsManagerAdapter implements RoundMetricsManager {
   private readonly roundMetrics = new Map<bigint, RoundMetrics>();
@@ -24,8 +27,9 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
   private readonly container = getGlobalContainer();
 
   constructor(
-    private readonly discordNotifier: DiscordNotifier | null
-  ) { }
+    private readonly discordNotifier: DiscordNotifier | null,
+    private readonly pricePort: PricePort | null,
+  ) {}
 
   setBaseline(rewardsSol: bigint): void {
     this.lastRewardsSol = rewardsSol;
@@ -43,9 +47,7 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
     if (amountLamports <= 0n) {
       return;
     }
-    this.lastRewardsSol = this.lastRewardsSol > amountLamports
-      ? this.lastRewardsSol - amountLamports
-      : 0n;
+    this.lastRewardsSol = this.lastRewardsSol > amountLamports ? this.lastRewardsSol - amountLamports : 0n;
   }
 
   recordPlacement(roundId: bigint, stakeLamports: bigint, squareIndex: number): void {
@@ -68,13 +70,31 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
     metrics.placements += 1;
   }
 
+  setPriceQuote(roundId: bigint, priceQuote: PriceQuote | null): void {
+    if (!this.discordNotifier || !priceQuote) return;
+
+    let metrics = this.roundMetrics.get(roundId);
+    if (!metrics) {
+      metrics = {
+        totalStakeLamports: 0n,
+        squares: new Set<number>(),
+        evaluated: false,
+        placements: 0,
+        priceQuote: null,
+      };
+      this.roundMetrics.set(roundId, metrics);
+    }
+
+    metrics.priceQuote = priceQuote;
+  }
+
   async finalizeRounds(currentBoardRound: bigint): Promise<void> {
     if (!this.discordNotifier || this.roundMetrics.size === 0) return;
 
     try {
-      const authorityKey = this.container.resolve<any>('AuthorityPublicKey');
-      const blockchain = this.container.resolve<any>('BlockchainPort');
-      const miner = await blockchain.getMiner(authorityKey.toBase58());
+      const authorityKey = this.container.resolve<PublicKey>('AuthorityPublicKey');
+      const blockchain = this.container.resolve<BlockchainPort>('BlockchainPort');
+      const miner: Miner | null = await blockchain.getMiner(authorityKey.toBase58());
 
       if (!miner) return;
 
@@ -97,13 +117,9 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
     }
   }
 
-  private async evaluateRoundOutcome(
-    roundId: bigint,
-    metrics: RoundMetrics,
-    snapshot: any
-  ): Promise<void> {
+  private async evaluateRoundOutcome(roundId: bigint, metrics: RoundMetrics, snapshot: Miner): Promise<void> {
     const deltaSol = snapshot.rewardsSol - this.lastRewardsSol;
-    const deltaOre = (snapshot.rewardsOre ?? 0n) - this.lastRewardsOre;
+    const deltaOre = snapshot.rewardsOre - this.lastRewardsOre;
 
     this.lastRewardsSol = snapshot.rewardsSol;
     this.lastRewardsOre = snapshot.rewardsOre ?? 0n;
@@ -125,8 +141,8 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
       this.lossStreak = 0;
       const pnlLamports = deltaSol - metrics.totalStakeLamports;
 
-      // orePerSol is ORE/SOL, convert to SOL/ORE for value calculation
-      const orePriceInSol = metrics.priceQuote ? 1 / metrics.priceQuote.orePerSol : null;
+      const priceQuote = metrics.priceQuote ?? this.pricePort?.getPrice() ?? null;
+      const orePriceInSol = priceQuote ? priceQuote.solPerOre : null;
       const oreValueLamports = this.computeOreValueLamports(deltaOre, orePriceInSol);
       const realPnlLamports = oreValueLamports !== null ? pnlLamports + oreValueLamports : pnlLamports;
 

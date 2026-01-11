@@ -1,11 +1,12 @@
-import {
-  PublicKey as SolanaPublicKey,
-  SystemProgram,
-  Transaction,
-  TransactionInstruction,
-} from '@solana/web3.js';
+import { PublicKey as SolanaPublicKey, SystemProgram, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { deriveConfigPda, ENTROPY_PROGRAM_ID, ORE_PROGRAM_ID } from '../../constants';
-import { type CheckpointParams, type ClaimSolParams, type ConfigAccount, type DeployParams, OreInstruction, } from './types';
+import {
+  type CheckpointParams,
+  type ClaimSolParams,
+  type ConfigAccount,
+  type DeployParams,
+  OreInstruction,
+} from './types';
 
 export class TransactionBuilder {
   private readonly programId: SolanaPublicKey;
@@ -19,7 +20,9 @@ export class TransactionBuilder {
    * Get the entropy var address from the config account.
    * Cached for 5 minutes to avoid repeated RPC calls.
    */
-  async getEntropyVar(connection: { getAccountInfo: (pubkey: SolanaPublicKey) => Promise<{ data: Buffer } | null> }): Promise<SolanaPublicKey> {
+  async getEntropyVar(connection: {
+    getAccountInfo: (pubkey: SolanaPublicKey) => Promise<{ data: Buffer } | null>;
+  }): Promise<SolanaPublicKey> {
     const now = Date.now();
     if (this.cachedConfig && now - this.cachedConfig.fetchedAt < 5 * 60_000) {
       return this.cachedConfig.data.varAddress;
@@ -72,7 +75,7 @@ export class TransactionBuilder {
 
   async buildDeployInstruction(
     params: DeployParams,
-    connection: { getAccountInfo: (pubkey: SolanaPublicKey) => Promise<{ data: Buffer } | null> }
+    connection: { getAccountInfo: (pubkey: SolanaPublicKey) => Promise<{ data: Buffer } | null> },
   ): Promise<TransactionInstruction> {
     if (params.targetSquares.length === 0) {
       throw new Error('targetSquares cannot be empty');
@@ -93,7 +96,7 @@ export class TransactionBuilder {
     const automationAddress = this.deriveAutomationPda(params.authority);
 
     // Get entropy var from config account
-    const entropyVarAddress = params.entropyVar ?? await this.getEntropyVar(connection);
+    const entropyVarAddress = params.entropyVar ?? (await this.getEntropyVar(connection));
 
     const data = Buffer.alloc(1 + 8 + 4);
     data.writeUInt8(OreInstruction.Deploy, 0);
@@ -133,10 +136,7 @@ export class TransactionBuilder {
     });
   }
 
-  buildTransaction(
-    instructions: TransactionInstruction[],
-    signers: SolanaPublicKey[]
-  ): Transaction {
+  buildTransaction(instructions: TransactionInstruction[], signers: SolanaPublicKey[]): Transaction {
     const transaction = new Transaction();
     for (const instruction of instructions) {
       transaction.add(instruction);
@@ -146,40 +146,25 @@ export class TransactionBuilder {
   }
 
   private deriveBoardPda(): SolanaPublicKey {
-    return SolanaPublicKey.findProgramAddressSync(
-      [Buffer.from('board')],
-      this.programId
-    )[0];
+    return SolanaPublicKey.findProgramAddressSync([Buffer.from('board')], this.programId)[0];
   }
 
   private deriveRoundPda(roundId: bigint): SolanaPublicKey {
     const idBuffer = Buffer.alloc(8);
     idBuffer.writeBigUInt64LE(roundId);
-    return SolanaPublicKey.findProgramAddressSync(
-      [Buffer.from('round'), idBuffer],
-      this.programId
-    )[0];
+    return SolanaPublicKey.findProgramAddressSync([Buffer.from('round'), idBuffer], this.programId)[0];
   }
 
   private deriveMinerPda(authority: SolanaPublicKey): SolanaPublicKey {
-    return SolanaPublicKey.findProgramAddressSync(
-      [Buffer.from('miner'), authority.toBuffer()],
-      this.programId
-    )[0];
+    return SolanaPublicKey.findProgramAddressSync([Buffer.from('miner'), authority.toBuffer()], this.programId)[0];
   }
 
   private deriveAutomationPda(authority: SolanaPublicKey): SolanaPublicKey {
-    return SolanaPublicKey.findProgramAddressSync(
-      [Buffer.from('automation'), authority.toBuffer()],
-      this.programId
-    )[0];
+    return SolanaPublicKey.findProgramAddressSync([Buffer.from('automation'), authority.toBuffer()], this.programId)[0];
   }
 
   private deriveTreasuryPda(): SolanaPublicKey {
-    return SolanaPublicKey.findProgramAddressSync(
-      [Buffer.from('treasury')],
-      this.programId
-    )[0];
+    return SolanaPublicKey.findProgramAddressSync([Buffer.from('treasury')], this.programId)[0];
   }
 
   private deriveConfigPda(): SolanaPublicKey {
