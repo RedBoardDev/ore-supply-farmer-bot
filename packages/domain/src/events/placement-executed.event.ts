@@ -11,7 +11,7 @@ export function placementExecutedEvent(
   roundId: bigint,
   squares: number[],
   amountLamports: bigint,
-  signature: string
+  signature: string,
 ): PlacementExecutedEventData {
   return {
     type: 'placement-executed',

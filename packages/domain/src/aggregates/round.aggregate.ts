@@ -13,7 +13,7 @@ export class Round {
     private readonly _id: RoundId,
     private readonly _deployed: readonly bigint[],
     private readonly _motherlode: bigint,
-    private readonly _expiresAt: bigint
+    private readonly _expiresAt: bigint,
   ) {
     if (_deployed.length !== 25) {
       throw new Error('Round must have exactly 25 deployed values');
@@ -67,4 +67,3 @@ export class Round {
     return this._id.equals(other._id);
   }
 }
-

@@ -1,11 +1,11 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
 const optionalUrlSchema = z.preprocess((value) => {
-  if (typeof value !== "string") {
+  if (typeof value !== 'string') {
     return value;
   }
   const trimmed = value.trim();
@@ -13,21 +13,21 @@ const optionalUrlSchema = z.preprocess((value) => {
 }, z.string().url().optional());
 
 const lamportsSchema = z.union([z.bigint(), z.number(), z.string()]).transform((value, ctx) => {
-  if (typeof value === "bigint") {
+  if (typeof value === 'bigint') {
     if (value < 0n) {
-      ctx.addIssue({ code: "custom", message: "Lamports must be a non-negative integer" });
+      ctx.addIssue({ code: 'custom', message: 'Lamports must be a non-negative integer' });
       return z.NEVER;
     }
     return value;
   }
 
-  if (typeof value === "number") {
+  if (typeof value === 'number') {
     if (!Number.isSafeInteger(value) || !Number.isInteger(value)) {
-      ctx.addIssue({ code: "custom", message: "Lamports must be a safe integer" });
+      ctx.addIssue({ code: 'custom', message: 'Lamports must be a safe integer' });
       return z.NEVER;
     }
     if (value < 0) {
-      ctx.addIssue({ code: "custom", message: "Lamports must be a non-negative integer" });
+      ctx.addIssue({ code: 'custom', message: 'Lamports must be a non-negative integer' });
       return z.NEVER;
     }
     return BigInt(value);
@@ -35,12 +35,12 @@ const lamportsSchema = z.union([z.bigint(), z.number(), z.string()]).transform((
 
   const trimmed = value.trim();
   if (!/^-?\d+$/.test(trimmed)) {
-    ctx.addIssue({ code: "custom", message: "Lamports must be a numeric string" });
+    ctx.addIssue({ code: 'custom', message: 'Lamports must be a numeric string' });
     return z.NEVER;
   }
   const parsed = BigInt(trimmed);
   if (parsed < 0n) {
-    ctx.addIssue({ code: "custom", message: "Lamports must be a non-negative integer" });
+    ctx.addIssue({ code: 'custom', message: 'Lamports must be a non-negative integer' });
     return z.NEVER;
   }
   return parsed;
@@ -54,7 +54,7 @@ const nullableLamportsSchema = z.union([lamportsSchema, z.null()]);
 
 const telemetryFileSchema = z
   .object({
-    logLevel: z.enum(["debug", "info", "warn", "error"]).default("warn"),
+    logLevel: z.enum(['debug', 'info', 'warn', 'error']).default('warn'),
     traceErrors: z.boolean().default(false),
   })
   .strict();
@@ -67,7 +67,7 @@ export type TelemetryConfig = z.infer<typeof telemetrySchema>;
 
 const rpcFileSchema = z
   .object({
-    commitment: z.enum(["processed", "confirmed", "finalized"]).default("processed"),
+    commitment: z.enum(['processed', 'confirmed', 'finalized']).default('processed'),
   })
   .strict();
 
@@ -86,7 +86,7 @@ export const timingSchema = z
     overheadMs: z.number().int().min(0).max(200).default(10),
     parallelismFactor: z.number().min(1).max(5).default(1.5),
     prepSlotsAhead: z.number().int().min(0).max(20).default(3),
-    latencyMetricsPath: z.string().min(1).default("data/latency-history.ndjson"),
+    latencyMetricsPath: z.string().min(1).default('data/latency-history.ndjson'),
     latencyHistorySize: z.number().int().min(10).max(100_000).default(100),
     latencyService: z
       .object({
@@ -136,7 +136,7 @@ export const transactionSchema = z
     skipPreflight: z.boolean().default(true),
     awaitProcessed: z.boolean().default(false),
     awaitConfirmation: z.boolean().default(false),
-    confirmationMode: z.enum(["processed", "confirmed", "finalized"]).default("processed"),
+    confirmationMode: z.enum(['processed', 'confirmed', 'finalized']).default('processed'),
     maxRetriesMain: z.number().int().min(0).max(20).default(5),
     maxRetriesDefault: z.number().int().min(0).max(20).default(3),
   })

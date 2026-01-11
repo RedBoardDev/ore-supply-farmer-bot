@@ -7,6 +7,7 @@ export interface MinerProps {
   readonly authority: SolanaAddress;
   readonly deployed: readonly bigint[];
   readonly rewardsSol: bigint;
+  readonly rewardsOre: bigint;
   readonly checkpointId: bigint;
   readonly roundId: bigint;
 }
@@ -16,16 +17,24 @@ export class Miner {
     private readonly _authority: SolanaAddress,
     private readonly _deployed: readonly bigint[],
     private readonly _rewardsSol: bigint,
+    private readonly _rewardsOre: bigint,
     private readonly _checkpointId: bigint,
-    private readonly _roundId: bigint
+    private readonly _roundId: bigint,
   ) {
     if (_deployed.length !== 25) {
       throw new Error('Miner must have exactly 25 deployed values');
     }
   }
 
-  static create(authority: SolanaAddress, deployed: readonly bigint[], rewardsSol: bigint, checkpointId: bigint, roundId: bigint): Miner {
-    return new Miner(authority, deployed, rewardsSol, checkpointId, roundId);
+  static create(
+    authority: SolanaAddress,
+    deployed: readonly bigint[],
+    rewardsSol: bigint,
+    rewardsOre: bigint,
+    checkpointId: bigint,
+    roundId: bigint,
+  ): Miner {
+    return new Miner(authority, deployed, rewardsSol, rewardsOre, checkpointId, roundId);
   }
 
   get authority(): SolanaAddress {
@@ -38,6 +47,10 @@ export class Miner {
 
   get rewardsSol(): bigint {
     return this._rewardsSol;
+  }
+
+  get rewardsOre(): bigint {
+    return this._rewardsOre;
   }
 
   get checkpointId(): bigint {
@@ -62,11 +75,10 @@ export class Miner {
   }
 
   hasDeployed(): boolean {
-    return this._deployed.some(val => val > 0n);
+    return this._deployed.some((val) => val > 0n);
   }
 
   equals(other: Miner): boolean {
     return this._authority === other._authority;
   }
 }
-

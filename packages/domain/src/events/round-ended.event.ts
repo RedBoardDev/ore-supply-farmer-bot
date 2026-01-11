@@ -7,7 +7,12 @@ export interface RoundEndedEventData {
   readonly winnerAddress: string;
 }
 
-export function roundEndedEvent(roundId: bigint, winningSquare: number, potAmount: bigint, winnerAddress: string): RoundEndedEventData {
+export function roundEndedEvent(
+  roundId: bigint,
+  winningSquare: number,
+  potAmount: bigint,
+  winnerAddress: string,
+): RoundEndedEventData {
   return {
     type: 'round-ended',
     timestamp: Date.now(),

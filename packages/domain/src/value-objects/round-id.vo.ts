@@ -7,7 +7,7 @@ export class RoundId {
 
   static create(value: bigint): RoundId {
     if (value < 0n) {
-      throw new Error("RoundId cannot be negative");
+      throw new Error('RoundId cannot be negative');
     }
     return new RoundId(value);
   }

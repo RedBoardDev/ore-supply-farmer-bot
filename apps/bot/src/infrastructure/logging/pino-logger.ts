@@ -1,6 +1,6 @@
-import { loadConfig } from "@osb/config";
-import pino, { type Logger, type LoggerOptions } from "pino";
-import type { LoggerPort, LogLevel } from "./logger.port.js";
+import { loadConfig } from '@osb/config';
+import pino, { type Logger, type LoggerOptions } from 'pino';
+import type { LoggerPort, LogLevel } from './logger.port.js';
 
 export interface LoggerConfig {
   level: LogLevel;
@@ -29,11 +29,11 @@ export class PinoLogger implements LoggerPort {
     };
 
     options.transport = {
-      target: "pino-pretty",
+      target: 'pino-pretty',
       options: {
         colorize: true,
-        translateTime: "SYS:standard",
-        ignore: "pid,hostname",
+        translateTime: 'SYS:standard',
+        ignore: 'pid,hostname',
       },
     };
 
@@ -78,7 +78,7 @@ export class PinoLogger implements LoggerPort {
 
   child(bindings: Record<string, unknown>): LoggerPort {
     const childLogger = this.logger.child(bindings);
-    return new PinoLogger({ name: this.name, level: "info", traceErrors: this.traceErrors }, childLogger);
+    return new PinoLogger({ name: this.name, level: 'info', traceErrors: this.traceErrors }, childLogger);
   }
 
   setLevel(level: LogLevel): void {
@@ -93,7 +93,7 @@ export class PinoLogger implements LoggerPort {
 let globalRootLogger: LoggerPort | null = null;
 
 export function createPinoLogger(config: { name: string; logLevel?: LogLevel; traceErrors?: boolean }): void {
-  const level = (config.logLevel ?? "warn") as LogLevel;
+  const level = (config.logLevel ?? 'warn') as LogLevel;
 
   globalRootLogger = new PinoLogger({
     name: config.name,
@@ -106,12 +106,12 @@ function initializeRootLogger(): void {
   try {
     const { config } = loadConfig();
     createPinoLogger({
-      name: "osb",
+      name: 'osb',
       logLevel: config.telemetry.logLevel,
       traceErrors: config.telemetry.traceErrors,
     });
   } catch {
-    createPinoLogger({ name: "osb" });
+    createPinoLogger({ name: 'osb' });
   }
 }
 
@@ -120,7 +120,7 @@ export function createChildLogger(name: string): LoggerPort {
     initializeRootLogger();
   }
   if (!globalRootLogger) {
-    throw new Error("Logger not initialized");
+    throw new Error('Logger not initialized');
   }
   return globalRootLogger.child({ name });
 }

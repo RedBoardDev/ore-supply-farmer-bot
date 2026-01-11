@@ -1,11 +1,11 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
 const optionalUrlSchema = z.preprocess((value) => {
-  if (typeof value !== "string") {
+  if (typeof value !== 'string') {
     return value;
   }
   const trimmed = value.trim();
@@ -18,7 +18,7 @@ const optionalUrlSchema = z.preprocess((value) => {
 
 export const envSchema = z
   .object({
-    WALLET_KEYPAIR: z.string().trim().min(1).default("BOT_KEYPAIR"),
+    WALLET_KEYPAIR: z.string().trim().min(1).default('BOT_KEYPAIR'),
     RPC_HTTP_ENDPOINT: z.url().trim(),
     RPC_WS_ENDPOINT: z.url().trim(),
     DISCORD_WEBHOOK_URL: optionalUrlSchema,

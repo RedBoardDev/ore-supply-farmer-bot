@@ -1,4 +1,4 @@
-export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal";
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 export interface LoggerPort {
   trace(message: string, context?: Record<string, unknown>): void;

@@ -6,7 +6,11 @@ export interface CheckpointCompletedEventData {
   readonly checkpointId: bigint;
 }
 
-export function checkpointCompletedEvent(roundId: bigint, minerAuthority: string, checkpointId: bigint): CheckpointCompletedEventData {
+export function checkpointCompletedEvent(
+  roundId: bigint,
+  minerAuthority: string,
+  checkpointId: bigint,
+): CheckpointCompletedEventData {
   return {
     type: 'checkpoint-completed',
     timestamp: Date.now(),

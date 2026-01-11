@@ -1,4 +1,4 @@
-import type { Lamports } from "./lamports.vo";
+import type { Lamports } from './lamports.vo';
 
 export interface StakeAmountProps {
   readonly value: Lamports;
@@ -40,7 +40,7 @@ export class StakeAmount {
   }
 
   toString(): string {
-    const suffix = this._isMinimum ? " (min)" : this._isCapped ? " (capped)" : "";
+    const suffix = this._isMinimum ? ' (min)' : this._isCapped ? ' (capped)' : '';
     return `Stake${suffix}: ${this._value.toString()}`;
   }
 }

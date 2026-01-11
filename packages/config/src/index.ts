@@ -1,4 +1,4 @@
-export * from "./config";
+export * from './config';
 export {
   type LoadedConfig,
   type LoadOptions,
@@ -7,4 +7,4 @@ export {
   loadEnv,
   validateConfig,
   validateEnv,
-} from "./loader";
+} from './loader';

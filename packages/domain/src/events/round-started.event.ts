@@ -7,7 +7,12 @@ export interface RoundStartedEventData {
   readonly epochId: bigint;
 }
 
-export function roundStartedEvent(roundId: bigint, startSlot: bigint, endSlot: bigint, epochId: bigint): RoundStartedEventData {
+export function roundStartedEvent(
+  roundId: bigint,
+  startSlot: bigint,
+  endSlot: bigint,
+  epochId: bigint,
+): RoundStartedEventData {
   return {
     type: 'round-started',
     timestamp: Date.now(),

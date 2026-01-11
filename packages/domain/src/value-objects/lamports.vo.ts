@@ -6,7 +6,7 @@ export interface LamportsProps {
 }
 
 export class Lamports {
-  private constructor(private readonly _value: bigint) { }
+  private constructor(private readonly _value: bigint) {}
 
   get value(): bigint {
     return this._value;
@@ -14,7 +14,7 @@ export class Lamports {
 
   static create(value: bigint): Lamports {
     if (value < 0n) {
-      throw new Error("Lamports value cannot be negative");
+      throw new Error('Lamports value cannot be negative');
     }
     return new Lamports(value);
   }
@@ -35,7 +35,7 @@ export class Lamports {
   subtract(other: Lamports): Lamports {
     const result = this._value - other._value;
     if (result < 0n) {
-      throw new Error("Cannot subtract larger Lamports from smaller");
+      throw new Error('Cannot subtract larger Lamports from smaller');
     }
     return Lamports.create(result);
   }

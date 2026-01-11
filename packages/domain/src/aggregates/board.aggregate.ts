@@ -13,8 +13,8 @@ export class Board {
     private readonly _roundId: RoundId,
     private readonly _startSlot: Slot,
     private readonly _endSlot: Slot,
-    private readonly _epochId: bigint
-  ) { }
+    private readonly _epochId: bigint,
+  ) {}
 
   static create(roundId: RoundId, startSlot: Slot, endSlot: Slot, epochId: bigint): Board {
     if (endSlot.value <= startSlot.value) {
@@ -66,4 +66,3 @@ export class Board {
     );
   }
 }
-

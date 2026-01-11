@@ -2,48 +2,48 @@
 export const ORE_FEES = 0.9;
 
 export interface OrePriceProps {
-  readonly orePerSol: number;
-  readonly netOrePerSol: number;
+  readonly solPerOre: number;
+  readonly netSolPerOre: number;
   readonly fetchedAt: number;
 }
 
 export class OrePrice {
   private constructor(
-    private readonly _orePerSol: number,
-    private readonly _netOrePerSol: number,
+    private readonly _solPerOre: number,
+    private readonly _netSolPerOre: number,
     private readonly _fetchedAt: number,
   ) {}
 
-  get orePerSol(): number {
-    return this._orePerSol;
+  get solPerOre(): number {
+    return this._solPerOre;
   }
 
-  get netOrePerSol(): number {
-    return this._netOrePerSol;
+  get netSolPerOre(): number {
+    return this._netSolPerOre;
   }
 
   get fetchedAt(): number {
     return this._fetchedAt;
   }
 
-  static create(orePerSol: number, netOrePerSol: number, fetchedAt: number): OrePrice {
-    if (orePerSol <= 0) {
-      throw new Error("ORE price must be positive");
+  static create(solPerOre: number, netSolPerOre: number, fetchedAt: number): OrePrice {
+    if (solPerOre <= 0) {
+      throw new Error('ORE price must be positive');
     }
-    if (netOrePerSol <= 0) {
-      throw new Error("Net ORE price must be positive");
+    if (netSolPerOre <= 0) {
+      throw new Error('Net ORE price must be positive');
     }
     if (fetchedAt <= 0) {
-      throw new Error("Fetch timestamp must be positive");
+      throw new Error('Fetch timestamp must be positive');
     }
-    return new OrePrice(orePerSol, netOrePerSol, fetchedAt);
+    return new OrePrice(solPerOre, netSolPerOre, fetchedAt);
   }
 
   static fromQuotes(oreUsd: number, solUsd: number, fetchedAt: number): OrePrice {
-    const orePerSol = oreUsd / solUsd;
+    const solPerOre = oreUsd / solUsd;
     const feeFactor = ORE_FEES;
-    const netOrePerSol = orePerSol * feeFactor;
-    return OrePrice.create(orePerSol, netOrePerSol, fetchedAt);
+    const netSolPerOre = solPerOre * feeFactor;
+    return OrePrice.create(solPerOre, netSolPerOre, fetchedAt);
   }
 
   isStale(maxAgeMs: number): boolean {
@@ -51,10 +51,10 @@ export class OrePrice {
   }
 
   equals(other: OrePrice): boolean {
-    return this._orePerSol === other._orePerSol && this._netOrePerSol === other._netOrePerSol;
+    return this._solPerOre === other._solPerOre && this._netSolPerOre === other._netSolPerOre;
   }
 
   toString(): string {
-    return `ORE: ${this._orePerSol.toFixed(6)} SOL (net: ${this._netOrePerSol.toFixed(6)} SOL)`;
+    return `1 ORE = ${this._solPerOre.toFixed(6)} SOL (net: ${this._netSolPerOre.toFixed(6)} SOL)`;
   }
 }

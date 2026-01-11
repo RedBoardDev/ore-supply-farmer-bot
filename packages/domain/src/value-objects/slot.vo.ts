@@ -1,6 +1,6 @@
 // SLOTS_PER_SECOND = 2.5 as per the ORE protocol
 export const SLOTS_PER_SECOND = 2.5;
-export const SLOT_DURATION_MS = Math.round(1_000 / SLOTS_PER_SECOND);
+export const SLOT_DURATION_MS = Math.round(1000 / SLOTS_PER_SECOND);
 
 export class Slot {
   private constructor(private readonly _value: bigint) {}
@@ -11,7 +11,7 @@ export class Slot {
 
   static create(value: bigint): Slot {
     if (value < 0n) {
-      throw new Error("Slot value cannot be negative");
+      throw new Error('Slot value cannot be negative');
     }
     return new Slot(value);
   }
