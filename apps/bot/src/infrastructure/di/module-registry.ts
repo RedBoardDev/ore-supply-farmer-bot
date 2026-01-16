@@ -1,173 +1,148 @@
-import { type PlacementPrefetcher, PlacementPrefetcherAdapter } from '@osb/bot/application/use-cases/execute-placement/prefetcher/placement-prefetcher';
+import type { MinerAccount, RoundAccount } from '@osb/bot/application/decoders';
+import { ensureCheckpoint as ensureCheckpointUsecase } from '@osb/bot/application/use-cases/checkpoint/checkpoint-usecase';
+import {
+  type PlacementPrefetcher,
+  PlacementPrefetcherAdapter,
+} from '@osb/bot/application/use-cases/execute-placement/prefetcher/placement-prefetcher';
 import { CheckpointService } from '@osb/bot/domain/services/checkpoint.service';
-import { ClockService } from '@osb/bot/domain/services/default-clock';
 import { EvStrategyService } from '@osb/bot/domain/services/ev-strategy.service';
-import { FileLatencyStorage, LatencyServiceAdapter, type LatencyStoragePort } from '@osb/bot/domain/services/latency.service';
+import {
+  FileLatencyStorage,
+  LatencyServiceAdapter,
+  type LatencyStoragePort,
+} from '@osb/bot/domain/services/latency.service';
 import { MiningCostStrategy } from '@osb/bot/domain/services/mining-cost-strategy.service';
 import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
-import type { EvStrategyServicePort } from '@osb/bot/domain/services/ports/ev-strategy.port.d';
-import type { PricePort } from '@osb/bot/domain/services/ports/price.port';
-import { type InstructionCache, InstructionCacheAdapter } from '@osb/bot/infrastructure/adapters/cache/instruction-cache.adapter';
+import type { EvStrategyServicePort, PlacementDecision } from '@osb/bot/domain/services/ports/ev-strategy.port';
+import type { PricePort, PriceQuote } from '@osb/bot/domain/services/ports/price.port';
+import {
+  type InstructionCache,
+  InstructionCacheAdapter,
+} from '@osb/bot/infrastructure/adapters/cache/instruction-cache.adapter';
 import { SlotCacheAdapter } from '@osb/bot/infrastructure/adapters/cache/slot-cache.adapter';
 import { ConsoleNotifierAdapter } from '@osb/bot/infrastructure/adapters/notification/console-notifier.adapter';
 import { DiscordNotifierAdapter } from '@osb/bot/infrastructure/adapters/notification/discord-notifier.adapter';
 import type { DiscordNotifier } from '@osb/bot/infrastructure/adapters/notification/discord-notifier.interface';
+import { MultiNotifierAdapter } from '@osb/bot/infrastructure/adapters/notification/multi-notifier.adapter';
 import type { NotificationPort } from '@osb/bot/infrastructure/adapters/notification/ports/notification.port';
-import { LiteJupiterPriceAdapter } from '@osb/bot/infrastructure/adapters/price/lite-jupiter-price.adapter';
-import { type RoundMetricsManager, RoundMetricsManagerAdapter } from '@osb/bot/infrastructure/adapters/round/round-metrics';
-import { type RoundStreamManager, RoundStreamManagerAdapter } from '@osb/bot/infrastructure/adapters/round/round-stream-manager.adapter';
+import { JupiterPriceAdapter } from '@osb/bot/infrastructure/adapters/price/jupiter-price.adapter';
+import {
+  type RoundMetricsManager,
+  RoundMetricsManagerAdapter,
+} from '@osb/bot/infrastructure/adapters/round/round-metrics';
+import {
+  type RoundStreamManager,
+  RoundStreamManagerAdapter,
+} from '@osb/bot/infrastructure/adapters/round/round-stream-manager.adapter';
 import { TransactionBuilder } from '@osb/bot/infrastructure/adapters/transaction/transaction-builder';
 import { TransactionSender } from '@osb/bot/infrastructure/adapters/transaction/transaction-sender.adapter';
-import { type BoardWatcher, BoardWatcherAdapter, } from '@osb/bot/infrastructure/adapters/watch/board-watcher.adapter';
+import { type BoardWatcher, BoardWatcherAdapter } from '@osb/bot/infrastructure/adapters/watch/board-watcher.adapter';
 import { createChildLogger } from '@osb/bot/infrastructure/logging/pino-logger';
 import type { ConfigSchema } from '@osb/config';
-import { Connection, Keypair, PublicKey } from '@solana/web3.js';
+import type { EnvSchema } from '@osb/config/env';
+import { RoundId } from '@osb/domain';
+import { Connection, Keypair, type PublicKey } from '@solana/web3.js';
 import { type BlockhashCache, BlockhashCacheAdapter } from '../adapters/blockchain/blockhash-cache.adapter';
 import { SolanaBlockchainAdapter } from '../adapters/blockchain/solana.adapter';
 import { type Container, getGlobalContainer } from './container';
 
 const log = createChildLogger('bot-registry');
 
-export function IoCmoduleRegistry(botConfig: ConfigSchema): Container {
+export function IoCmoduleRegistry(botConfig: ConfigSchema, env: EnvSchema): Container {
   const container = getGlobalContainer();
 
   container.registerInstance('BotConfig', botConfig);
 
-  // Clock
-  container.register(
-    'Clock',
-    () => new ClockService()
-  );
-
   // Solana Connection
   container.register(
     'SolanaConnection',
-    () => new Connection(botConfig.rpc.httpEndpoint, {
-      commitment: botConfig.rpc.commitment,
-      wsEndpoint: botConfig.rpc.wsEndpoint,
-    })
+    () =>
+      new Connection(botConfig.rpc.httpEndpoint, {
+        commitment: botConfig.rpc.commitment,
+        wsEndpoint: botConfig.rpc.wsEndpoint,
+      }),
   );
 
   // Slot Cache (WebSocket-based slot updates)
   const solanaConnection = container.resolve<Connection>('SolanaConnection');
-  container.registerInstance(
-    'SlotCache',
-    new SlotCacheAdapter(solanaConnection)
-  );
+  container.registerInstance('SlotCache', new SlotCacheAdapter(solanaConnection));
 
   // Wallet keypair - only required in live mode
-  container.register(
-    'WalletKeypair',
-    () => {
-      // Skip keypair loading in dry-run mode
-      if (botConfig.runtime.dryRun) {
-        log.info('[DRY RUN] Skipping wallet keypair loading');
-        return null;
-      }
+  container.register('WalletKeypair', () => {
+    const envVar = env.WALLET_KEYPAIR;
+    const privateKeyBase58 = process.env[envVar];
 
-      const envVar = botConfig.wallet.keypairEnvVar; // TODO comment recuperer depuis le .env ?
-      let privateKeyBase58 = process.env[envVar];
-
-      // Try fallback env var if primary not set
-      if (!privateKeyBase58) { // TODO et du coup gérer ça
-        privateKeyBase58 = process.env.BOT_KEYPAIR;
-      }
-
-      if (!privateKeyBase58) {
-        throw new Error(`Missing wallet keypair env var: ${envVar} or BOT_KEYPAIR`);
-      }
-
-      // Parse private key from various formats
-      try {
-        // Try JSON format first
-        if (privateKeyBase58.startsWith('[')) {
-          const keyArray = JSON.parse(privateKeyBase58);
-          return Buffer.from(keyArray);
-        }
-
-        // Try comma-separated format
-        if (privateKeyBase58.includes(',')) {
-          const keyArray = privateKeyBase58.split(',').map(Number);
-          return Buffer.from(keyArray);
-        }
-
-        // Default: base58 format
-        const bs58 = require('bs58');
-        return Buffer.from(bs58.decode(privateKeyBase58));
-      } catch (error) {
-        throw new Error(`Failed to parse wallet keypair: ${(error as Error).message}`);
-      }
+    // Try fallback env var if primary not set
+    if (!privateKeyBase58) {
+      throw new Error(`Missing wallet keypair env var: ${envVar}`);
     }
-  );
+
+    // Parse private key from various formats
+    try {
+      // Try JSON format first
+      if (privateKeyBase58.startsWith('[')) {
+        const keyArray = JSON.parse(privateKeyBase58);
+        return Buffer.from(keyArray);
+      }
+
+      // Try comma-separated format
+      if (privateKeyBase58.includes(',')) {
+        const keyArray = privateKeyBase58.split(',').map(Number);
+        return Buffer.from(keyArray);
+      }
+
+      // Default: base58 format
+      const bs58 = require('bs58');
+      return Buffer.from(bs58.decode(privateKeyBase58));
+    } catch (error) {
+      throw new Error(`Failed to parse wallet keypair: ${(error as Error).message}`);
+    }
+  });
 
   // Authority Keypair (for transactions) - only in live mode
-  container.register(
-    'AuthorityKeypair',
-    () => {
-      if (botConfig.runtime.dryRun) {
-        return null;
-      }
-      const keypairBuffer = container.resolve<Buffer>('WalletKeypair');
-      if (!keypairBuffer) {
-        throw new Error('Wallet keypair not available');
-      }
-      return Keypair.fromSecretKey(keypairBuffer);
+  container.register('AuthorityKeypair', () => {
+    const keypairBuffer = container.resolve<Buffer>('WalletKeypair');
+    if (!keypairBuffer) {
+      throw new Error('Wallet keypair not available');
     }
-  );
+    return Keypair.fromSecretKey(keypairBuffer);
+  });
 
   // Authority PublicKey
-  container.register(
-    'AuthorityPublicKey',
-    () => {
-      if (botConfig.runtime.dryRun) {
-        // Return a dummy public key for dry-run
-        return new PublicKey('11111111111111111111111111111111');
-      }
-      const keypair = container.resolve<Keypair>('AuthorityKeypair');
-      return keypair.publicKey;
-    }
-  );
+  container.register('AuthorityPublicKey', () => {
+    const keypair = container.resolve<Keypair>('AuthorityKeypair');
+    return keypair.publicKey;
+  });
 
   // Blockchain Adapter
-  container.registerInstance<BlockchainPort>(
-    'BlockchainPort',
-    new SolanaBlockchainAdapter(botConfig)
-  );
+  container.registerInstance<BlockchainPort>('BlockchainPort', new SolanaBlockchainAdapter(botConfig));
 
   // Price Adapter
-  container.registerInstance<PricePort>(
-    'PricePort',
-    new LiteJupiterPriceAdapter(botConfig)
-  );
+  container.registerInstance<PricePort>('PricePort', new JupiterPriceAdapter(env));
 
-  // Notification Port
-  if (botConfig.telemetry.discordWebhookUrl) {
-    container.registerInstance<NotificationPort>(
-      'NotificationPort',
-      new DiscordNotifierAdapter(botConfig.telemetry.discordWebhookUrl)
-    );
-  } else {
-    container.registerInstance<NotificationPort>(
-      'NotificationPort',
-      new ConsoleNotifierAdapter()
-    );
+  // Notification Port + Discord notifier
+  const webhookUrl = botConfig.telemetry.discordWebhookUrl;
+  const consoleNotifier = new ConsoleNotifierAdapter();
+  let discordNotifier: DiscordNotifier | null = null;
+  let notificationPort: NotificationPort = consoleNotifier;
+
+  if (webhookUrl) {
+    discordNotifier = new DiscordNotifierAdapter(webhookUrl);
+    notificationPort = new MultiNotifierAdapter([consoleNotifier, discordNotifier]);
   }
 
+  container.registerInstance<NotificationPort>('NotificationPort', notificationPort);
+  container.registerInstance<DiscordNotifier>('DiscordNotifier', discordNotifier);
+
   // Transaction Builder
-  container.registerInstance(
-    'TransactionBuilder',
-    new TransactionBuilder()
-  );
+  container.registerInstance('TransactionBuilder', new TransactionBuilder());
 
   // Transaction Sender
-  container.register(
-    'TransactionSender',
-    () => {
-      const connection = container.resolve<Connection>('SolanaConnection');
-      // const blockchain = container.resolve<BlockchainPort>('BlockchainPort');
-      return new TransactionSender(connection, botConfig);
-    }
-  );
+  container.register('TransactionSender', () => {
+    const connection = container.resolve<Connection>('SolanaConnection');
+    // const blockchain = container.resolve<BlockchainPort>('BlockchainPort');
+    return new TransactionSender(connection, botConfig);
+  });
 
   // EV Strategy Service
   container.registerInstance<EvStrategyServicePort>(
@@ -184,36 +159,34 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema): Container {
       scanSquareCount: botConfig.strategy.scanSquareCount,
       includeOreInEv: botConfig.strategy.includeOreInEv,
       stakeScalingFactor: botConfig.strategy.stakeScalingFactor,
-      volumeDecayPercentPerPlacement: botConfig.strategy.volumeDecayPercentPerPlacement,
-    })
+      volumeDecayPercentPerPlacement: botConfig.strategy.stakeDecayPercent,
+    }),
   );
 
   // Checkpoint Service
-  container.registerInstance<CheckpointService>(
-    'CheckpointService',
-    new CheckpointService()
-  );
+  container.registerInstance<CheckpointService>('CheckpointService', new CheckpointService());
 
   // Latency Service
   container.register(
     'LatencyService',
-    () => new LatencyServiceAdapter({
-      slotDurationMs: 400, // ~2.5 slots per second
-      smoothing: 0.2,
-      initialPrepMs: 400,
-      initialExecPerPlacementMs: 160,
-      maxSamples: 200,
-    })
+    () =>
+      new LatencyServiceAdapter({
+        slotDurationMs: botConfig.timing.latencyService.slotDurationMs,
+        smoothing: botConfig.timing.latencyService.smoothing,
+        initialPrepMs: botConfig.timing.latencyService.initialPrepMs,
+        initialExecPerPlacementMs: botConfig.timing.latencyService.initialExecPerPlacementMs,
+        maxSamples: botConfig.timing.latencyService.maxSamples,
+      }),
   );
 
   // Latency Storage
   container.registerInstance<LatencyStoragePort>(
     'LatencyStoragePort',
     new FileLatencyStorage({
-      path: botConfig.runtime.latencyMetricsPath,
-      maxEntries: botConfig.runtime.latencyHistorySize,
+      path: botConfig.timing.latencyMetricsPath,
+      maxEntries: botConfig.timing.latencyHistorySize,
       flushIntervalMs: 5000,
-    })
+    }),
   );
 
   // ============================================================================
@@ -221,10 +194,7 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema): Container {
   // ============================================================================
 
   // Instruction Cache
-  container.registerInstance<InstructionCache>(
-    'InstructionCache',
-    new InstructionCacheAdapter()
-  );
+  container.registerInstance<InstructionCache>('InstructionCache', new InstructionCacheAdapter());
 
   // Blockhash Cache
   container.registerInstance<BlockhashCache>(
@@ -233,7 +203,7 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema): Container {
       connection: solanaConnection,
       commitment: botConfig.rpc.commitment,
       refreshIntervalMs: 200,
-    })
+    }),
   );
 
   // Board Watcher
@@ -242,7 +212,7 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema): Container {
     new BoardWatcherAdapter({
       connection: solanaConnection,
       commitment: botConfig.rpc.commitment,
-    })
+    }),
   );
 
   // Round Stream Manager
@@ -253,46 +223,51 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema): Container {
       commitment: botConfig.rpc.commitment,
       strategyPlanner: {
         buildPlan: (context: {
-          round: any;
-          miner: any;
+          round: RoundAccount;
+          miner: MinerAccount;
           walletBalanceLamports: bigint;
-          priceQuote: any;
+          priceQuote: PriceQuote;
           maxPlacements: number;
-        }): any[] => {
+        }): PlacementDecision[] => {
           try {
-            const evStrategy = container.resolve<any>('EvStrategyService');
-            const decisions = evStrategy.calculateDecisions(
-              undefined,
+            const evStrategy = container.resolve<EvStrategyServicePort>('EvStrategyService');
+            return evStrategy.calculateDecisions(
+              null,
               context.round,
               context.miner,
-              context.priceQuote?.orePerSol ?? 0.5,
-              context.priceQuote?.netOrePerSol ?? 0.45,
-              context.walletBalanceLamports
+              context.priceQuote?.solPerOre ?? 0.5,
+              context.priceQuote?.netSolPerOre ?? 0.45,
+              context.walletBalanceLamports,
             );
-            return decisions;
           } catch (error) {
             log.debug(`Stream buildPlan failed: ${(error as Error).message}`);
             return [];
           }
         },
       },
-    })
+    }),
   );
 
   // Placement Prefetcher
+  const blockchainPort = container.resolve<BlockchainPort>('BlockchainPort');
   container.registerInstance<PlacementPrefetcher>(
     'PlacementPrefetcher',
     new PlacementPrefetcherAdapter({
       connection: solanaConnection,
       commitment: botConfig.rpc.commitment,
       authorityPublicKey: container.resolve<PublicKey>('AuthorityPublicKey'),
-    })
+      ensureCheckpoint: (roundId: bigint) =>
+        ensureCheckpointUsecase(blockchainPort, RoundId.create(roundId), botConfig, log),
+    }),
   );
 
   // Round Metrics Manager
   container.registerInstance<RoundMetricsManager>(
     'RoundMetricsManager',
-    new RoundMetricsManagerAdapter(container.resolve<DiscordNotifier>('DiscordNotifier'))
+    new RoundMetricsManagerAdapter(
+      container.resolve<DiscordNotifier>('DiscordNotifier'),
+      container.resolve<PricePort>('PricePort'),
+    ),
   );
 
   // Mining Cost Strategy
@@ -302,7 +277,7 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema): Container {
       enabled: botConfig.miningCost.enabled,
       thresholdPercent: botConfig.miningCost.thresholdPercent,
       historyRounds: botConfig.miningCost.historyRounds,
-    })
+    }),
   );
 
   return container;

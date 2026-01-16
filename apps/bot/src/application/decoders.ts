@@ -1,3 +1,4 @@
+import { ORE_BOARD_SIZE } from '@osb/bot/infrastructure/constants';
 import { PublicKey } from '@solana/web3.js';
 
 export interface BoardAccount {
@@ -37,6 +38,8 @@ export interface MinerAccount {
 const ACCOUNT_DISCRIMINATOR_SIZE = 8;
 const U64_SIZE = 8;
 const PUBKEY_SIZE = 32;
+const I64_SIZE = 8;
+const I128_SIZE = 16;
 
 function readU64LE(buffer: Buffer, offset: number): bigint {
   return buffer.readBigUInt64LE(offset);
@@ -60,7 +63,7 @@ export function decodeRoundAccount(data: Buffer): RoundAccount {
   offset += U64_SIZE;
 
   const deployed: bigint[] = [];
-  for (let i = 0; i < 25; i += 1) {
+  for (let i = 0; i < ORE_BOARD_SIZE; i += 1) {
     deployed.push(readU64LE(data, offset));
     offset += U64_SIZE;
   }
@@ -69,7 +72,7 @@ export function decodeRoundAccount(data: Buffer): RoundAccount {
   offset += 32;
 
   const counts: bigint[] = [];
-  for (let i = 0; i < 25; i += 1) {
+  for (let i = 0; i < ORE_BOARD_SIZE; i += 1) {
     counts.push(readU64LE(data, offset));
     offset += U64_SIZE;
   }
@@ -112,7 +115,7 @@ export function decodeRoundAccount(data: Buffer): RoundAccount {
     totalDeployed,
     totalMiners,
     totalVaulted,
-    totalWinnings
+    totalWinnings,
   };
 }
 
@@ -122,10 +125,22 @@ export function decodeMinerAccount(data: Buffer): MinerAccount {
   offset += PUBKEY_SIZE;
 
   const deployed: bigint[] = [];
-  for (let i = 0; i < 25; i += 1) {
+  for (let i = 0; i < ORE_BOARD_SIZE; i += 1) {
     deployed.push(readU64LE(data, offset));
     offset += U64_SIZE;
   }
+
+  offset += U64_SIZE * ORE_BOARD_SIZE; // Skip cumulative
+
+  const checkpointFee = readU64LE(data, offset);
+  offset += U64_SIZE;
+
+  const checkpointId = readU64LE(data, offset);
+  offset += U64_SIZE;
+
+  offset += I64_SIZE; // Skip last_claim_ore_at
+  offset += I64_SIZE; // Skip last_claim_sol_at
+  offset += I128_SIZE; // Skip rewards_factor
 
   const rewardsSol = readU64LE(data, offset);
   offset += U64_SIZE;
@@ -136,13 +151,9 @@ export function decodeMinerAccount(data: Buffer): MinerAccount {
   const refinedOre = readU64LE(data, offset);
   offset += U64_SIZE;
 
-  const checkpointFee = readU64LE(data, offset);
-  offset += U64_SIZE;
-
-  const checkpointId = readU64LE(data, offset);
-  offset += U64_SIZE;
-
   const roundId = readU64LE(data, offset);
+  offset += U64_SIZE;
+  offset += U64_SIZE * 2; // Skip lifetime counters
 
   return {
     authority,
@@ -152,6 +163,6 @@ export function decodeMinerAccount(data: Buffer): MinerAccount {
     refinedOre,
     checkpointFee,
     checkpointId,
-    roundId
+    roundId,
   };
 }

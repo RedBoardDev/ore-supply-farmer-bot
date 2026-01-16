@@ -1,5 +1,3 @@
-
-
 export interface LatencyRecord {
   readonly roundId: bigint;
   readonly prepMs: number;
@@ -114,7 +112,7 @@ export class LatencyServiceAdapter implements LatencyService {
       execPerPlacementMs: this.execAvgPerPlacementMs,
       prepP95Ms: prepP95,
       execP95Ms: execP95,
-      initialized: this.initialized
+      initialized: this.initialized,
     };
   }
 
@@ -160,10 +158,7 @@ export class LatencyServiceAdapter implements LatencyService {
       return null;
     }
     const sorted = [...values].sort((a, b) => a - b);
-    const index = Math.min(
-      sorted.length - 1,
-      Math.max(0, Math.floor(percentile * (sorted.length - 1)))
-    );
+    const index = Math.min(sorted.length - 1, Math.max(0, Math.floor(percentile * (sorted.length - 1))));
     const result = sorted[index];
     return result ?? null;
   }
@@ -212,7 +207,7 @@ export class FileLatencyStorage implements LatencyStoragePort {
             const parsed = JSON.parse(line) as Omit<LatencyRecord, 'roundId'> & { roundId: string };
             return {
               ...parsed,
-              roundId: BigInt(parsed.roundId)
+              roundId: BigInt(parsed.roundId),
             } as LatencyRecord;
           } catch {
             return null;
@@ -262,7 +257,7 @@ export class FileLatencyStorage implements LatencyStoragePort {
     }
     this.flushTimer = setTimeout(() => {
       this.flushTimer = null;
-      void this.flush().catch(() => { });
+      void this.flush().catch(() => {});
     }, this.flushIntervalMs);
   }
 
@@ -275,8 +270,8 @@ export class FileLatencyStorage implements LatencyStoragePort {
       .map((record) =>
         JSON.stringify({
           ...record,
-          roundId: record.roundId.toString()
-        })
+          roundId: record.roundId.toString(),
+        }),
       )
       .join('\n')
       .concat(this.records.length > 0 ? '\n' : '');

@@ -1,4 +1,6 @@
 import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
+import type { NotificationPort } from '@osb/bot/infrastructure/adapters/notification/ports/notification.port';
+import type { RoundMetricsManager } from '@osb/bot/infrastructure/adapters/round/round-metrics';
 import type { TransactionBuilder } from '@osb/bot/infrastructure/adapters/transaction/transaction-builder';
 import type { TransactionSender } from '@osb/bot/infrastructure/adapters/transaction/transaction-sender.adapter';
 import { getGlobalContainer } from '@osb/bot/infrastructure/di/container';
@@ -10,13 +12,8 @@ import type { Keypair, PublicKey } from '@solana/web3.js';
 export async function checkAndClaim(
   blockchain: BlockchainPort,
   config: ConfigSchema,
-  logger: LoggerPort
+  logger: LoggerPort,
 ): Promise<bigint> {
-  if (config.runtime.dryRun) {
-    logger.info('[DRY RUN] Would check for claims');
-    return 0n;
-  }
-
   const container = getGlobalContainer();
 
   try {
@@ -30,7 +27,12 @@ export async function checkAndClaim(
     }
 
     const rewardsSol = miner.rewardsSol;
-    const thresholdLamports = BigInt(Math.floor(config.claim.thresholdSol * 1e9));
+    const thresholdSol = config.claim.thresholdSol;
+    if (thresholdSol === false || thresholdSol <= 0) {
+      return 0n;
+    }
+
+    const thresholdLamports = BigInt(Math.floor(thresholdSol * 1e9));
 
     if (rewardsSol < thresholdLamports) {
       return 0n;
@@ -48,12 +50,16 @@ export async function checkAndClaim(
     const blockhash = await blockchain.getLatestBlockhash();
     transaction.recentBlockhash = blockhash.blockhash;
 
-    const result = await transactionSender.send(transaction, [keypair]);
+    const result = await transactionSender.send(transaction, [keypair], {
+      // Always await confirmation for claims to log success/failure precisely.
+      awaitConfirmation: true,
+      confirmationCommitment: config.transaction.confirmationMode,
+    });
 
     if (result.confirmed) {
       const claimDuration = Date.now() - claimStart;
       const event = rewardsClaimedEvent(miner.roundId, rewardsSol);
-      const notifier = container.resolve('NotificationPort') as any;
+      const notifier = container.resolve<NotificationPort>('NotificationPort');
       await notifier.send({
         type: 'success',
         title: 'Rewards Claimed',
@@ -63,18 +69,17 @@ export async function checkAndClaim(
 
       // Update baseline rewards for accurate PnL calculation
       try {
-        const roundMetricsManager = container.resolve<any>('RoundMetricsManager');
+        const roundMetricsManager = container.resolve<RoundMetricsManager>('RoundMetricsManager');
         if (roundMetricsManager) {
           roundMetricsManager.handleClaimedRewards(rewardsSol);
         }
-      } catch { }
+      } catch {}
 
       logger.info(`Rewards claimed successfully (${claimDuration}ms)`);
       return rewardsSol;
-    } else {
-      logger.error(`Claim failed: ${result.error}`);
-      return 0n;
     }
+    logger.error(`Claim failed: ${result.error}`);
+    return 0n;
   } catch (error) {
     logger.error('Error during claim check', error as Error);
     return 0n;
