@@ -1,13 +1,18 @@
+import type { BoardAccount } from '@osb/bot/application/decoders';
+import type { PricePort } from '@osb/bot/domain/services/ports/price.port';
 import type { RoundState } from '@osb/bot/domain/types/round';
+import type { TransactionBuilder } from '@osb/bot/infrastructure/adapters/transaction/transaction-builder';
 import { IoCmoduleRegistry } from '@osb/bot/infrastructure/di/module-registry';
 import { createChildLogger } from '@osb/bot/infrastructure/logging/pino-logger';
-import type { Board } from '@osb/domain';
+import { Board, RoundId, Slot } from '@osb/domain';
+import type { Connection } from '@solana/web3.js';
 import { RoundHandler } from '../use-cases';
 import { AttemptPlacement } from '../use-cases/execute-placement/executor/attempt-placement';
 import { OreBot } from './ore-bot';
 import { RunLoop } from './run-loop';
 
 const log = createChildLogger('core');
+const MAX_U64 = BigInt('18446744073709551615');
 
 export class Core extends OreBot {
   // State
@@ -38,11 +43,10 @@ export class Core extends OreBot {
     }
 
     log.info('Starting ORE smart bot...', {
-      dryRun: this.config.runtime.dryRun,
       rpc: this.config.rpc.httpEndpoint,
     });
 
-    IoCmoduleRegistry(this.config);
+    IoCmoduleRegistry(this.config, this.env);
 
     // Initialize runtime components
     this.initializeRuntimeComponents();
@@ -51,11 +55,36 @@ export class Core extends OreBot {
     this.getBlockhashCache().start();
     this.getSlotCache().start();
 
+    // Warm program config cache (entropy var)
+    await this.initializeProgramConfig();
+
+    // Fetch initial price quote (non-blocking)
+    try {
+      const pricePort = this.container.resolve<PricePort>('PricePort');
+      log.info('Fetching initial price quote...');
+      void pricePort.refresh().catch((error) => {
+        log.debug(`Initial price refresh failed: ${(error as Error).message}`);
+      });
+    } catch (error) {
+      log.debug(`Price service unavailable at startup: ${(error as Error).message}`);
+    }
+
     // Load latency history
     await this.loadLatencyHistory();
 
     // Initialize rewards baseline
     await this.initializeRewardsBaseline();
+
+    // Start board watcher early to seed WS snapshot and keep current board updated
+    const boardWatcher = this.getBoardWatcher();
+    this.bindBoardWatcher(boardWatcher);
+    await boardWatcher.start();
+    await boardWatcher.waitForInitialBoard();
+
+    const initialSnapshot = boardWatcher.getBoardSnapshot();
+    if (initialSnapshot) {
+      this.updateCurrentBoardFromSnapshot(initialSnapshot.data);
+    }
 
     // Subscribe to slot changes
     this.subscriptionId = await this.getBlockchain().onSlotChange(async (slot) => {
@@ -72,9 +101,6 @@ export class Core extends OreBot {
       await this.syncInitialBoardState(board);
     }
 
-    // Start board watcher
-    await this.getBoardWatcher().start();
-
     // Start run loop in background
     this.startRunLoop();
 
@@ -82,7 +108,7 @@ export class Core extends OreBot {
     await this.getNotificationPort().send({
       type: 'info',
       title: 'ORE Bot Started',
-      message: `Bot started in ${this.config.runtime.dryRun ? 'DRY RUN' : 'LIVE'} mode`,
+      message: 'Bot started',
     });
 
     this.isRunning = true;
@@ -93,13 +119,19 @@ export class Core extends OreBot {
     this.attemptPlacement = new AttemptPlacement(
       this.config,
       this.getBlockchain(),
+      this.roundHandler,
       this.getRoundStreamManager(),
       this.getPlacementPrefetcher(),
       this.getInstructionCache(),
       this.getBlockhashCache(),
       this.getRoundMetricsManager(),
-      this.getSlotCache()
+      this.getSlotCache(),
     );
+
+    const attemptPlacement = this.attemptPlacement;
+    if (!attemptPlacement) {
+      throw new Error('AttemptPlacement not initialized');
+    }
 
     // Initialize RunLoop
     this.runLoop = new RunLoop(
@@ -112,9 +144,9 @@ export class Core extends OreBot {
       this.roundState,
       () => this.getLatencyService().getSnapshot(),
       (roundId, _endSlot) => this.handleNewRound(roundId),
-      (roundId, endSlot) => this.attemptPlacement!.execute(roundId, endSlot),
+      (roundId, endSlot, board) => attemptPlacement.execute(roundId, endSlot, board),
       (currentRound) => this.getRoundMetricsManager()?.finalizeRounds(currentRound) ?? Promise.resolve(),
-      this.attemptPlacement
+      attemptPlacement,
     );
   }
 
@@ -137,6 +169,33 @@ export class Core extends OreBot {
     this.roundHandler.notifyRoundStart(roundId);
   }
 
+  private bindBoardWatcher(boardWatcher: ReturnType<Core['getBoardWatcher']>): void {
+    boardWatcher.on('board', (snapshot) => {
+      this.updateCurrentBoardFromSnapshot(snapshot.data);
+    });
+  }
+
+  private updateCurrentBoardFromSnapshot(snapshot: BoardAccount): void {
+    if (!this.isBoardReady(snapshot)) {
+      return;
+    }
+
+    try {
+      this.currentBoard = Board.create(
+        RoundId.create(snapshot.roundId),
+        Slot.create(snapshot.startSlot),
+        Slot.create(snapshot.endSlot),
+        snapshot.epochId,
+      );
+    } catch (error) {
+      log.debug(`Unable to update current board: ${(error as Error).message}`);
+    }
+  }
+
+  private isBoardReady(board: BoardAccount): boolean {
+    return board.endSlot > board.startSlot && board.endSlot < MAX_U64;
+  }
+
   private async syncInitialBoardState(board: Board): Promise<void> {
     this.currentBoard = board;
     this.roundState = this.roundHandler.resetState();
@@ -147,10 +206,6 @@ export class Core extends OreBot {
     // Clear stream and prefetcher
     this.getRoundStreamManager().clearDecisions();
     this.getPlacementPrefetcher().clear();
-
-    // Claim and checkpoint
-    await this.roundHandler.checkAndClaim(this.getBlockchain());
-    await this.roundHandler.ensureCheckpoint(this.getBlockchain(), board);
   }
 
   private async handleRoundEnd(): Promise<void> {
@@ -179,10 +234,21 @@ export class Core extends OreBot {
       const history = await this.getLatencyStorage().load();
       if (history.length > 0) {
         const latencyService = this.getLatencyService();
-        for (const record of history) {
-          latencyService.record(record.placementCount, record.prepMs, record.executionMs);
+        latencyService.restoreFromHistory(history);
+
+        const lastRecord = history[history.length - 1];
+        if (lastRecord) {
+          this.attemptPlacement?.setLastPlanPlacements(lastRecord.placementCount);
         }
-        log.debug(`Loaded ${history.length} latency samples`);
+
+        const snapshot = latencyService.getSnapshot();
+        log.debug(
+          `Loaded ${history.length} latency sample(s); prep≈${snapshot.prepMs.toFixed(
+            1,
+          )}ms exec≈${snapshot.execPerPlacementMs.toFixed(1)}ms`,
+        );
+      } else {
+        log.debug('Latency history empty; using default timing estimates.');
       }
     } catch {
       log.debug(`Unable to load latency history`);
@@ -198,6 +264,17 @@ export class Core extends OreBot {
       }
     } catch {
       log.debug(`Unable to initialize rewards baseline`);
+    }
+  }
+
+  private async initializeProgramConfig(): Promise<void> {
+    try {
+      const connection = this.container.resolve<Connection>('SolanaConnection');
+      const transactionBuilder = this.container.resolve<TransactionBuilder>('TransactionBuilder');
+      const entropyVar = await transactionBuilder.getEntropyVar(connection);
+      log.info(`Program config loaded (entropy var=${entropyVar.toBase58()})`);
+    } catch (error) {
+      log.debug(`Unable to load program config: ${(error as Error).message}`);
     }
   }
 

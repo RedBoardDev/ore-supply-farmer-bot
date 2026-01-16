@@ -10,15 +10,19 @@ import type { RoundStreamManager } from '@osb/bot/infrastructure/adapters/round/
 import type { BoardWatcher } from '@osb/bot/infrastructure/adapters/watch/board-watcher.adapter';
 import { type Container, getGlobalContainer } from '@osb/bot/infrastructure/di/container';
 import { type ConfigSchema, loadConfig } from '@osb/config';
+import type { EnvSchema } from '@osb/config/env';
 import type { PublicKey } from '@solana/web3.js';
 
 export abstract class OreBot {
   protected readonly container: Container;
   protected readonly config: ConfigSchema;
+  protected readonly env: EnvSchema;
 
   constructor() {
     this.container = getGlobalContainer();
-    this.config = loadConfig();
+    const { config, env } = loadConfig();
+    this.config = config;
+    this.env = env;
   }
 
   // ============================================================================
@@ -128,13 +132,6 @@ export abstract class OreBot {
   // ============================================================================
   // Utility
   // ============================================================================
-
-  // /**
-  //  * Check if running in dry run mode.
-  //  */
-  // protected isDryRun(): boolean {
-  //   return this.config.runtime.dryRun;
-  // }
 
   // /**
   //  * Get current slot from cache or connection.
