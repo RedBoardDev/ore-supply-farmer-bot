@@ -3,29 +3,123 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
   },
   "files": {
-    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json"],
-    "ignoreUnknown": true
+    "ignoreUnknown": true,
+    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json", "**/*.css"]
+  },
+  "formatter": {
+    "enabled": true,
+    "lineWidth": 120,
+    "indentWidth": 2,
+    "indentStyle": "space",
+    "formatWithErrors": true
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "nursery": {
+        "noDeprecatedImports": "warn"
+      },
+      "correctness": {
+        "useUniqueElementIds": "off",
+        "useExhaustiveDependencies": "off",
+        "noUnusedImports": "error",
+        "noUnusedVariables": {
+          "level": "warn",
+          "fix": "none"
+        },
+        "noUndeclaredVariables": "warn"
+      },
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noImplicitAnyLet": "warn",
+        "noDebugger": "error",
+        "noDoubleEquals": "error",
+        "noDuplicateCase": "error",
+        "noFallthroughSwitchClause": "error",
+        "useIterableCallbackReturn": "warn",
+        "noNonNullAssertedOptionalChain": "warn",
+        "noArrayIndexKey": "warn",
+        "noConsole": {
+          "level": "error",
+          "fix": "none",
+          "options": {
+            "allow": ["error", "debug", "info", "warn", "assert"]
+          }
+        },
+        "noShadowRestrictedNames": "off"
+      },
+      "performance": {
+        "noAccumulatingSpread": "info"
+      },
+      "complexity": {
+        "noForEach": "info",
+        "noStaticOnlyClass": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "warn",
+        "useSingleVarDeclarator": "warn",
+        "noYodaExpression": "info",
+        "useConst": "warn",
+        "useDefaultParameterLast": "error",
+        "useNumericSeparators": "info",
+        "useImportType": {
+          "level": "error",
+          "fix": "safe"
+        },
+        "noUselessElse": "warn",
+        "noParameterAssign": "warn"
+      }
     }
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 120
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "double",
+      "quoteStyle": "single",
       "semicolons": "always",
-      "trailingCommas": "all"
+      "trailingCommas": "all",
+      "bracketSpacing": true,
+      "bracketSameLine": true,
+      "arrowParentheses": "always"
     }
-  }
+  },
+  "css": {
+    "formatter": {
+      "quoteStyle": "single",
+      "indentWidth": 2
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/bot/src/**/*.ts", "packages/domain/**/*.ts", "packages/config/**/*.ts"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useSemanticElements": "info"
+          }
+        }
+      }
+    }
+  ]
 }

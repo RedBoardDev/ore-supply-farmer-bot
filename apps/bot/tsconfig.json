@@ -30,8 +30,5 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../../packages/domain" },
-    { "path": "../../packages/config" }
-  ]
+  "references": [{ "path": "../../packages/domain" }, { "path": "../../packages/config" }]
 }
