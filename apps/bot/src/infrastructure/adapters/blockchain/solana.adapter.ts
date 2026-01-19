@@ -1,7 +1,7 @@
 import { decodeBoardAccount, decodeMinerAccount, decodeRoundAccount } from '@osb/bot/application/decoders';
 import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
 import type { ConfigSchema } from '@osb/config';
-import { type Board, Miner, Round, RoundId, Slot } from '@osb/domain';
+import { Board, Miner, Round, RoundId, Slot } from '@osb/domain';
 import type { SolanaAddress } from '@osb/domain/aggregates/miner.aggregate';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { BOARD_ADDRESS, deriveMinerPda, deriveRoundPda } from '../../constants';

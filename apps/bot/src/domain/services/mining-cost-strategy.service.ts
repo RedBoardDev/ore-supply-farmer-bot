@@ -4,6 +4,7 @@ import type {
   MiningCostInput,
   MiningCostResult,
   MiningCostStrategyPort,
+  MiningDecision,
 } from './ports/mining-cost-strategy.port';
 
 const log = createChildLogger('mining-cost-strategy');

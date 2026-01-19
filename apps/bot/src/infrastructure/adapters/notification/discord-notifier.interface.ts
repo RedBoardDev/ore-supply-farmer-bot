@@ -1,4 +1,6 @@
-export interface DiscordNotifier {
+import type { NotificationPort } from './ports/notification.port';
+
+export interface DiscordNotifier extends NotificationPort {
   sendWin(options: {
     roundId: bigint;
     winningSolLamports: bigint;

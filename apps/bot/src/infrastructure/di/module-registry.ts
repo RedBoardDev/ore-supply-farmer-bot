@@ -6,14 +6,11 @@ import {
 } from '@osb/bot/application/use-cases/execute-placement/prefetcher/placement-prefetcher';
 import { CheckpointService } from '@osb/bot/domain/services/checkpoint.service';
 import { EvStrategyService } from '@osb/bot/domain/services/ev-strategy.service';
-import {
-  FileLatencyStorage,
-  LatencyServiceAdapter,
-  type LatencyStoragePort,
-} from '@osb/bot/domain/services/latency.service';
+import { FileLatencyStorage, LatencyServiceAdapter } from '@osb/bot/domain/services/latency.service';
 import { MiningCostStrategy } from '@osb/bot/domain/services/mining-cost-strategy.service';
 import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
 import type { EvStrategyServicePort, PlacementDecision } from '@osb/bot/domain/services/ports/ev-strategy.port';
+import type { LatencyStoragePort } from '@osb/bot/domain/services/ports/latency.port';
 import type { PricePort, PriceQuote } from '@osb/bot/domain/services/ports/price.port';
 import {
   type InstructionCache,
@@ -40,7 +37,7 @@ import { type BoardWatcher, BoardWatcherAdapter } from '@osb/bot/infrastructure/
 import { createChildLogger } from '@osb/bot/infrastructure/logging/pino-logger';
 import type { ConfigSchema } from '@osb/config';
 import type { EnvSchema } from '@osb/config/env';
-import { RoundId } from '@osb/domain';
+import { Miner, Round, RoundId } from '@osb/domain';
 import { Connection, Keypair, type PublicKey } from '@solana/web3.js';
 import { type BlockhashCache, BlockhashCacheAdapter } from '../adapters/blockchain/blockhash-cache.adapter';
 import { SolanaBlockchainAdapter } from '../adapters/blockchain/solana.adapter';
@@ -123,16 +120,13 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema, env: EnvSchema): Cont
   // Notification Port + Discord notifier
   const webhookUrl = botConfig.telemetry.discordWebhookUrl;
   const consoleNotifier = new ConsoleNotifierAdapter();
-  let discordNotifier: DiscordNotifier | null = null;
-  let notificationPort: NotificationPort = consoleNotifier;
-
-  if (webhookUrl) {
-    discordNotifier = new DiscordNotifierAdapter(webhookUrl);
-    notificationPort = new MultiNotifierAdapter([consoleNotifier, discordNotifier]);
-  }
+  const discordNotifier: DiscordNotifier | null = webhookUrl ? new DiscordNotifierAdapter(webhookUrl) : null;
+  const notificationPort: NotificationPort = discordNotifier
+    ? new MultiNotifierAdapter([consoleNotifier, discordNotifier])
+    : consoleNotifier;
 
   container.registerInstance<NotificationPort>('NotificationPort', notificationPort);
-  container.registerInstance<DiscordNotifier>('DiscordNotifier', discordNotifier);
+  container.registerInstance<DiscordNotifier | null>('DiscordNotifier', discordNotifier);
 
   // Transaction Builder
   container.registerInstance('TransactionBuilder', new TransactionBuilder());
@@ -229,20 +223,35 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema, env: EnvSchema): Cont
           priceQuote: PriceQuote;
           maxPlacements: number;
         }): PlacementDecision[] => {
+          let decisions: PlacementDecision[] = [];
           try {
             const evStrategy = container.resolve<EvStrategyServicePort>('EvStrategyService');
-            return evStrategy.calculateDecisions(
+            const round = Round.create(
+              RoundId.create(context.round.id),
+              context.round.deployed,
+              context.round.motherlode,
+              context.round.expiresAt,
+            );
+            const miner = Miner.create(
+              context.miner.authority.toBase58(),
+              context.miner.deployed,
+              context.miner.rewardsSol,
+              context.miner.rewardsOre,
+              context.miner.checkpointId,
+              context.miner.roundId,
+            );
+            decisions = evStrategy.calculateDecisions(
               null,
-              context.round,
-              context.miner,
+              round,
+              miner,
               context.priceQuote?.solPerOre ?? 0.5,
               context.priceQuote?.netSolPerOre ?? 0.45,
               context.walletBalanceLamports,
             );
           } catch (error) {
             log.debug(`Stream buildPlan failed: ${(error as Error).message}`);
-            return [];
           }
+          return decisions;
         },
       },
     }),
@@ -265,7 +274,7 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema, env: EnvSchema): Cont
   container.registerInstance<RoundMetricsManager>(
     'RoundMetricsManager',
     new RoundMetricsManagerAdapter(
-      container.resolve<DiscordNotifier>('DiscordNotifier'),
+      container.resolve<DiscordNotifier | null>('DiscordNotifier'),
       container.resolve<PricePort>('PricePort'),
     ),
   );

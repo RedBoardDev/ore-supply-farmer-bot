@@ -8,7 +8,7 @@ export class ConsoleNotifierAdapter implements NotificationPort {
     const timestamp = new Date(message.timestamp ?? Date.now()).toISOString();
     log.info(`[${timestamp}] [${message.type.toUpperCase()}] ${message.title}: ${message.message}`);
     if (message.data) {
-      log.info('  Data:', JSON.stringify(message.data, null, 2));
+      log.info(`  Data: ${JSON.stringify(message.data, null, 2)}`);
     }
   }
 }
