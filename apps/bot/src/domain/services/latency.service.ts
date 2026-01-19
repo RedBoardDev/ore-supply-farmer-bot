@@ -1,32 +1,6 @@
-export interface LatencyRecord {
-  readonly roundId: bigint;
-  readonly prepMs: number;
-  readonly executionMs: number;
-  readonly placementCount: number;
-  readonly timestamp: number;
-}
-
-export interface LatencySnapshot {
-  readonly prepMs: number;
-  readonly execPerPlacementMs: number;
-  readonly prepP95Ms: number | null;
-  readonly execP95Ms: number | null;
-  readonly initialized: boolean;
-}
-
-export interface LatencyService {
-  record(placements: number, prepMs: number, execMs: number): void;
-  getSnapshot(): LatencySnapshot;
-  estimateSlots(options: {
-    expectedPlacements: number;
-    minSlots: number;
-    maxSlots: number;
-    safetySlots: number;
-    overheadPerPlacementMs?: number;
-    parallelismFactor?: number;
-  }): number;
-  restoreFromHistory(records: LatencyRecord[]): void;
-}
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import type { LatencyRecord, LatencyServicePort, LatencySnapshot, LatencyStoragePort } from './ports/latency.port';
 
 interface LatencyTrackerOptions {
   slotDurationMs: number;
@@ -38,7 +12,7 @@ interface LatencyTrackerOptions {
 
 const MIN_VALID_EXEC_MS = 20;
 
-export class LatencyServiceAdapter implements LatencyService {
+export class LatencyServiceAdapter implements LatencyServicePort {
   private prepAvgMs: number;
   private execAvgPerPlacementMs: number;
   private readonly slotDurationMs: number;
@@ -172,12 +146,6 @@ export class LatencyServiceAdapter implements LatencyService {
   }
 }
 
-export interface LatencyStoragePort {
-  load(): Promise<LatencyRecord[]>;
-  enqueue(record: LatencyRecord): void;
-  flush(): Promise<void>;
-}
-
 export class FileLatencyStorage implements LatencyStoragePort {
   private readonly path: string;
   private readonly maxEntries: number;
@@ -195,7 +163,6 @@ export class FileLatencyStorage implements LatencyStoragePort {
 
   async load(): Promise<LatencyRecord[]> {
     try {
-      const fs = await import('node:fs/promises');
       const raw = await fs.readFile(this.path, 'utf8');
       const lines = raw
         .split('\n')
@@ -262,8 +229,6 @@ export class FileLatencyStorage implements LatencyStoragePort {
   }
 
   private async persist(): Promise<void> {
-    const fs = await import('node:fs/promises');
-    const path = await import('node:path');
     await fs.mkdir(path.dirname(path.resolve(this.path)), { recursive: true });
     const payload = this.records
       .slice(-this.maxEntries)

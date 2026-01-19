@@ -1,12 +1,9 @@
-/**
- * Placement Strategy
- *
- * Mining cost evaluation and placement refresh logic.
- */
-
-import type { LatencyService, LatencySnapshot } from '@osb/bot/domain/services/latency.service';
-import type { MiningCostResult, MiningCostStrategyPort } from '@osb/bot/domain/services/mining-cost-strategy.service';
 import type { EvStrategyServicePort, PlacementDecision } from '@osb/bot/domain/services/ports/ev-strategy.port';
+import type { LatencyServicePort, LatencySnapshot } from '@osb/bot/domain/services/ports/latency.port';
+import type {
+  MiningCostResult,
+  MiningCostStrategyPort,
+} from '@osb/bot/domain/services/ports/mining-cost-strategy.port';
 import type { PriceQuote } from '@osb/bot/domain/services/ports/price.port';
 import { SLOT_DURATION_MS } from '@osb/bot/infrastructure/constants';
 import { getGlobalContainer } from '@osb/bot/infrastructure/di/container';
@@ -113,7 +110,7 @@ export class PlacementStrategy {
     return refreshed;
   }
 
-  getLatencySnapshot(latencyService: LatencyService): LatencySnapshot {
+  getLatencySnapshot(latencyService: LatencyServicePort): LatencySnapshot {
     return latencyService.getSnapshot();
   }
 

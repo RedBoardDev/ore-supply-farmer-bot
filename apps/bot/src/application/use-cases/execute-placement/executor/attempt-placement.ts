@@ -1,8 +1,8 @@
 import type { BoardAccount } from '@osb/bot/application/decoders';
 import type { RoundHandler } from '@osb/bot/application/use-cases';
-import type { LatencyService, LatencyStoragePort } from '@osb/bot/domain/services/latency.service';
 import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
 import type { EvStrategyServicePort, PlacementDecision } from '@osb/bot/domain/services/ports/ev-strategy.port';
+import type { LatencyServicePort, LatencyStoragePort } from '@osb/bot/domain/services/ports/latency.port';
 import type { PricePort, PriceQuote } from '@osb/bot/domain/services/ports/price.port';
 import type { BlockhashCache } from '@osb/bot/infrastructure/adapters/blockchain/blockhash-cache.adapter';
 import type { InstructionCache } from '@osb/bot/infrastructure/adapters/cache/instruction-cache.adapter';
@@ -81,7 +81,7 @@ export class AttemptPlacement {
     const transactionBuilder = this.container.resolve<TransactionBuilder>('TransactionBuilder');
     const transactionSender = this.container.resolve<TransactionSender>('TransactionSender');
     const authorityKeypair = this.container.resolve<Keypair>('AuthorityKeypair');
-    const latencyService = this.container.resolve<LatencyService>('LatencyService');
+    const latencyService = this.container.resolve<LatencyServicePort>('LatencyService');
     const latencyStorage = this.container.resolve<LatencyStoragePort>('LatencyStoragePort');
     const pricePort = this.container.resolve<PricePort>('PricePort');
 
@@ -241,7 +241,9 @@ export class AttemptPlacement {
       return false;
     }
 
-    const latencySnapshot = this.strategy.getLatencySnapshot(this.container.resolve<LatencyService>('LatencyService'));
+    const latencySnapshot = this.strategy.getLatencySnapshot(
+      this.container.resolve<LatencyServicePort>('LatencyService'),
+    );
     const execGuardMs = this.strategy.getExecGuardMs(latencySnapshot, log);
     const lastRefreshDurationMs = streamPreparation.streamHealthy
       ? this.roundStreamManager.getLastRefreshDurationMs()

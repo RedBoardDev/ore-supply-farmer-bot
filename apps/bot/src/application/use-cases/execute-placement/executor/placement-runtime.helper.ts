@@ -1,6 +1,6 @@
 import type { RoundHandler } from '@osb/bot/application/use-cases';
-import type { LatencyService, LatencyStoragePort } from '@osb/bot/domain/services/latency.service';
 import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
+import type { LatencyServicePort, LatencyStoragePort } from '@osb/bot/domain/services/ports/latency.port';
 import type { SlotCache } from '@osb/bot/infrastructure/adapters/cache/slot-cache.adapter';
 import type { LoggerPort } from '@osb/bot/infrastructure/logging/logger.port';
 import { RoundId } from '@osb/domain';
@@ -13,7 +13,7 @@ export class PlacementRuntimeHelper {
     private readonly blockchain: BlockchainPort,
     private readonly slotCache: SlotCache | null,
     private readonly connection: Connection,
-    private readonly latencyService: LatencyService,
+    private readonly latencyService: LatencyServicePort,
     private readonly latencyStorage: LatencyStoragePort,
     private readonly logger: LoggerPort,
   ) {}

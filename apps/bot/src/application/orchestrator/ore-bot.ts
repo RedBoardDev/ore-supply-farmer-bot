@@ -1,10 +1,10 @@
 import type { PlacementPrefetcher } from '@osb/bot/application/use-cases/execute-placement/prefetcher/placement-prefetcher';
-import type { LatencyService, LatencyStoragePort } from '@osb/bot/domain/services/latency.service';
 import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
+import type { LatencyServicePort, LatencyStoragePort } from '@osb/bot/domain/services/ports/latency.port';
 import type { BlockhashCache } from '@osb/bot/infrastructure/adapters/blockchain/blockhash-cache.adapter';
 import type { InstructionCache } from '@osb/bot/infrastructure/adapters/cache/instruction-cache.adapter';
 import type { SlotCache } from '@osb/bot/infrastructure/adapters/cache/slot-cache.adapter';
-import type { NotificationPort } from '@osb/bot/infrastructure/adapters/notification/ports/notification.port.d';
+import type { NotificationPort } from '@osb/bot/infrastructure/adapters/notification/ports/notification.port';
 import type { RoundMetricsManager } from '@osb/bot/infrastructure/adapters/round/round-metrics';
 import type { RoundStreamManager } from '@osb/bot/infrastructure/adapters/round/round-stream-manager.adapter';
 import type { BoardWatcher } from '@osb/bot/infrastructure/adapters/watch/board-watcher.adapter';
@@ -97,8 +97,8 @@ export abstract class OreBot {
   //   return this.container.resolve<PricePort>('PricePort');
   // }
 
-  protected getLatencyService(): LatencyService {
-    return this.container.resolve<LatencyService>('LatencyService');
+  protected getLatencyService(): LatencyServicePort {
+    return this.container.resolve<LatencyServicePort>('LatencyService');
   }
 
   protected getLatencyStorage(): LatencyStoragePort {

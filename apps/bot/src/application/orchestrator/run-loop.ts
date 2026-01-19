@@ -1,8 +1,8 @@
 import type { BoardAccount } from '@osb/bot/application/decoders';
 import type { RoundHandler } from '@osb/bot/application/use-cases';
 import type { PlacementPrefetcher } from '@osb/bot/application/use-cases/execute-placement/prefetcher/placement-prefetcher';
-import type { LatencyService, LatencySnapshot } from '@osb/bot/domain/services/latency.service';
 import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
+import type { LatencyServicePort, LatencySnapshot } from '@osb/bot/domain/services/ports/latency.port';
 import type { PricePort } from '@osb/bot/domain/services/ports/price.port';
 import type { RoundState } from '@osb/bot/domain/types/round';
 import type { SlotCache } from '@osb/bot/infrastructure/adapters/cache/slot-cache.adapter';
@@ -293,7 +293,7 @@ export class RunLoop {
 
   private getPlacementThreshold(): number {
     const expectedPlacements = this.getExpectedPlacementCount();
-    const latencyService = this.container.resolve<LatencyService>('LatencyService');
+    const latencyService = this.container.resolve<LatencyServicePort>('LatencyService');
     return latencyService.estimateSlots({
       expectedPlacements,
       minSlots: this.config.timing.minSlots,
