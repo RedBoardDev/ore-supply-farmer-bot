@@ -4,103 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ORE Smart Bot - A Hexagonal Architecture + DDD refactor of an ORE Protocol mining bot. The bot monitors ORE rounds on Solana, evaluates placement opportunities based on Expected Value (EV), and automatically places stakes, checkpoints, and claims rewards.
+ORE Smart Bot - A Hexagonal Architecture + DDD refactor of an ORE Protocol mining bot. Monitors ORE rounds on Solana, evaluates placement opportunities based on Expected Value (EV), and automatically places stakes, checkpoints, and claims rewards.
 
 ## Commands
 
 ```bash
 # Build all workspaces
-npm run build
-npm run build:domain    # Build domain package only
-npm run build:config    # Build config package only
-npm run build:bot       # Build bot app only
+yarn build
+yarn build:domain
+yarn build:config
+yarn build:bot
 
 # Test
-npm run test            # Run all tests
-npm run test:domain     # Run domain tests only
+yarn test
+yarn test:domain
 
 # Type check and lint
-npm run typecheck
-npm run lint
+yarn check
+yarn lint:fix
+yarn format:fix
 
 # Run the bot
-npm run start           # Production start
-npm run dev             # Development with watch mode (apps/bot)
+yarn start           # Production
+yarn dev             # Watch mode
 ```
 
 ## Architecture
 
 ### Monorepo Structure
 ```
-new-code/
+/
 ├── packages/
 │   ├── domain/       # Pure business logic (DDD)
-│   └── config/       # Configuration types + Zod schemas
+│   └── config/       # Configuration + Zod schemas
 └── apps/
-    └── bot/          # Hexagonal adapters + entry point
+    └── bot/          # Hexagonal adapters + orchestration
 ```
 
-### Hexagonal Architecture Layers
+### Layers (inside-out)
 
-**Domain Layer** (`packages/domain/src/`):
-- `aggregates/`: Board, Round, Miner - entity clusters with invariants
-- `value-objects/`: Lamports, RoundId, Slot, OrePrice, StakeAmount - validated primitives
-- `events/`: RoundStarted, RoundEnded, PlacementExecuted, CheckpointCompleted, RewardsClaimed
-- `services/`: EvStrategyService, CheckpointService, LatencyService
-- `ports/`: BlockchainPort, PricePort, StoragePort, NotificationPort, ClockPort
+**Domain** - Pure TypeScript, no dependencies on outer layers
+- Aggregates: Board, Round, Miner (entity clusters with invariants)
+- Value Objects: Lamports, RoundId, Slot, OrePrice, StakeAmount (validated)
+- Events: RoundStarted, RoundEnded, PlacementExecuted, etc.
+- Ports (interfaces only): BlockchainPort, PricePort, StoragePort, etc.
 
-**Application Layer** (`apps/bot/src/application/ore-bot.ts`):
-- `OreBot` class - orchestrates monitoring, claims, checkpoints, and placements
-- Uses domain aggregates and services through dependency injection
+**Application** - Use cases and orchestration
+- Orchestrator: Core class handles startup/shutdown, RunLoop handles round monitoring
+- Use Cases: Checkpoint, ClaimRewards, ExecutePlacement
 
-**Adapter Layer** (`apps/bot/src/adapters/`):
-- `solana-blockchain.adapter.ts`: Implements BlockchainPort for Solana
-- `lite-jupiter-price.adapter.ts`: Implements PricePort via Jupiter API
-- `discord-notifier.adapter.ts`, `console-notifier.adapter.ts`: NotificationPort implementations
-- `transaction-builder.ts`, `transaction-sender.ts`: Transaction construction/sending
-
-### Dependency Injection
-
-Custom IoC container in `infrastructure/container.ts`:
-```typescript
-// Registration
-container.register('Token', factory, { singleton: true });
-container.registerInstance('Token', instance);
-
-// Resolution
-const service = container.resolve<ServiceType>('Token');
-```
-
-Modules register their dependencies:
-- `registerDomainModule()`: Registers domain services
-- `registerBotModule()`: Registers adapters and app-specific bindings
+**Infrastructure** - Adapters and DI
+- Adapters: Solana blockchain, Jupiter price, Discord/Console notification
+- Caches: SlotCache, BlockhashCache, InstructionCache
+- DI Container: Wires dependencies based on config
 
 ### Configuration
 
-Zod schema validation in `packages/config/src/schema.ts`:
-```typescript
-export const configSchema = z.object({
-  telemetry: telemetrySchema,
-  rpc: rpcSchema,
-  wallet: walletSchema,
-  runtime: runtimeSchema,      // dryRun, auto slots, parallelism
-  strategy: strategySchema,     // stake caps, EV ratios, exposure limits
-  transaction: transactionSchema,
-  claim: claimSchema,
-  priceOracle: priceOracleSchema,
-});
-```
+Two files in `config/`:
+- `config.json`: Runtime settings (RPC commitment, timing, strategy, transaction options)
+- `.env`: Secrets (wallet keypair env var name, RPC URLs, API keys)
 
-## Key Domain Concepts
+Zod schema validation in config package. Env vars: `WALLET_KEYPAIR` (env var name), `RPC_HTTP_ENDPOINT`, `RPC_WS_ENDPOINT`, `JUPITER_API_KEY`, optional `DISCORD_WEBHOOK_URL`.
 
-- **Board**: Represents the current game state with 25 squares, round ID, start/end slots
-- **Round**: Contains deployed stakes per square, motherlode amount, expiration slot
-- **Miner**: Tracks user's checkpointed round, total rewards, current stake
-- **Checkpoint**: Synchronizes miner with latest round to claim rewards
-- **Placement**: Stake deployment to a specific square based on EV calculation
+## Key Concepts
+
+- **Board**: 25-square game state (ORE_BOARD_SIZE constant)
+- **Round**: Deployed stakes, motherlode amount, expiration
+- **Miner**: User's state per square, rewards, checkpointed round
+- **Checkpoint**: Sync miner to claim rewards from previous rounds
+- **Placement**: Stake deployment based on EV calculation
 
 ## ORE Protocol Integration
 
-- RPC endpoint via Helius (config: `rpc.httpEndpoint`)
-- WebSocket subscriptions for slot/board changes
-- Transaction signing with authority keypair from env var (`wallet.keypairEnvVar`)
+Manual buffer decoding for account data. WebSocket subscriptions for slot/board changes. Transaction signing with authority keypair from env var referenced by `WALLET_KEYPAIR`.
