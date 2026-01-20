@@ -29,6 +29,7 @@
       "initialExecPerPlacementMs": 160,
       "maxSamples": 200
     },
+    "boardPollIntervalMs": 5000,
     "queueOverheadMaxMs": 30,
     "queueOverheadFactor": 8
   },

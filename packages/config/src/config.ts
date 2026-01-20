@@ -103,6 +103,7 @@ export const timingSchema = z
         initialExecPerPlacementMs: 160,
         maxSamples: 200,
       }),
+    boardPollIntervalMs: z.number().int().min(500).max(60_000).default(5_000),
     queueOverheadMaxMs: z.number().int().min(0).max(500).default(30),
     queueOverheadFactor: z.number().int().min(0).max(50).default(8),
   })

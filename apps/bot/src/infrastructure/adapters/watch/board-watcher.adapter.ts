@@ -30,6 +30,7 @@ export interface BoardWatcher {
 interface BoardWatcherOptions {
   connection: Connection;
   commitment: Commitment;
+  pollIntervalMs: number;
 }
 
 const log = createChildLogger('board-watcher');
@@ -45,12 +46,17 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
   private readonly initialBoardPromise: Promise<void>;
   private resolveInitialBoard: (() => void) | null = null;
   private started = false;
+  private pollTimer: NodeJS.Timeout | null = null;
+  private pollInFlight = false;
+  private lastBoardUpdateAt = 0;
+  private readonly pollIntervalMs: number;
 
   constructor(private readonly options: BoardWatcherOptions) {
     super();
     this.initialBoardPromise = new Promise<void>((resolve) => {
       this.resolveInitialBoard = resolve;
     });
+    this.pollIntervalMs = options.pollIntervalMs;
   }
 
   async start(): Promise<void> {
@@ -59,6 +65,7 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
     }
     await this.seedBoardSnapshot();
     await this.subscribeBoard();
+    this.startPolling();
     this.started = true;
   }
 
@@ -73,6 +80,10 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
     if (this.roundSubscription !== null) {
       await this.options.connection.removeAccountChangeListener(this.roundSubscription).catch(() => {});
       this.roundSubscription = null;
+    }
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
     }
     this.started = false;
   }
@@ -128,6 +139,7 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
       data: board,
     };
     this.currentBoard = snapshot;
+    this.lastBoardUpdateAt = Date.now();
     if (this.resolveInitialBoard) {
       this.resolveInitialBoard();
       this.resolveInitialBoard = null;
@@ -178,6 +190,37 @@ export class BoardWatcherAdapter extends EventEmitter implements BoardWatcher {
       slot: account.context.slot,
       data: decodeRoundAccount(account.value.data as Buffer),
     };
+  }
+
+  private startPolling(): void {
+    if (this.pollIntervalMs <= 0) {
+      return;
+    }
+
+    this.pollTimer = setInterval(() => {
+      void this.pollBoardSnapshot();
+    }, this.pollIntervalMs);
+  }
+
+  private async pollBoardSnapshot(): Promise<void> {
+    if (!this.started || this.pollInFlight) {
+      return;
+    }
+
+    const ageMs = this.lastBoardUpdateAt === 0 ? Number.POSITIVE_INFINITY : Date.now() - this.lastBoardUpdateAt;
+    if (ageMs < this.pollIntervalMs) {
+      return;
+    }
+
+    log.debug(`Board snapshot stale (${Math.round(ageMs)}ms); polling RPC.`);
+    this.pollInFlight = true;
+    try {
+      await this.seedBoardSnapshot();
+    } catch (error) {
+      log.debug(`Board poll failed: ${(error as Error).message}`);
+    } finally {
+      this.pollInFlight = false;
+    }
   }
 }
 

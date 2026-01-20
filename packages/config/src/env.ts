@@ -18,7 +18,7 @@ const optionalUrlSchema = z.preprocess((value) => {
 
 export const envSchema = z
   .object({
-    WALLET_KEYPAIR: z.string().trim().min(1).default('BOT_KEYPAIR'),
+    WALLET_KEYPAIR: z.string().trim().min(1),
     RPC_HTTP_ENDPOINT: z.url().trim(),
     RPC_WS_ENDPOINT: z.url().trim(),
     DISCORD_WEBHOOK_URL: optionalUrlSchema,

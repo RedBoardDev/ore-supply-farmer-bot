@@ -209,6 +209,7 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema, env: EnvSchema): Cont
     new BoardWatcherAdapter({
       connection: solanaConnection,
       commitment: botConfig.rpc.commitment,
+      pollIntervalMs: botConfig.timing.boardPollIntervalMs,
     }),
   );
 
