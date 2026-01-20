@@ -56,7 +56,7 @@ export async function checkAndClaim(
       confirmationCommitment: config.transaction.confirmationMode,
     });
 
-    if (result.confirmed) {
+    if (result.status === 'confirmed' || result.status === 'processed') {
       const claimDuration = Date.now() - claimStart;
       const event = rewardsClaimedEvent(miner.roundId, rewardsSol);
       const notifier = container.resolve<NotificationPort>('NotificationPort');
@@ -78,7 +78,7 @@ export async function checkAndClaim(
       logger.info(`Rewards claimed successfully (${claimDuration}ms)`);
       return rewardsSol;
     }
-    logger.error(`Claim failed: ${result.error}`);
+    logger.error(`Claim failed: ${result.error ?? 'unknown error'}`);
     return 0n;
   } catch (error) {
     logger.error('Error during claim check', error as Error);

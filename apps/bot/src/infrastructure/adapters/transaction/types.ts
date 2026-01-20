@@ -31,7 +31,7 @@ export interface ConfigAccount {
 
 export interface SendResult {
   signature: string;
-  confirmed: boolean;
+  status: 'submitted' | 'processed' | 'confirmed' | 'failed';
   error?: string;
 }
 

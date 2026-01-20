@@ -77,7 +77,7 @@ export class TransactionSender {
         const confirmation = await confirmationPromise;
         return {
           signature,
-          confirmed: !confirmation.value.err,
+          status: confirmation.value.err ? 'failed' : 'confirmed',
           error: confirmation.value.err?.toString(),
         };
       }
@@ -98,24 +98,30 @@ export class TransactionSender {
         const processed = await processedPromise;
         return {
           signature,
-          confirmed: !processed.value.err,
+          status: processed.value.err ? 'failed' : 'processed',
           error: processed.value.err?.toString(),
         };
       }
 
-      void confirmationPromise.catch(() => {
-        // Fire-and-forget confirmation should not crash the loop.
-      });
+      void confirmationPromise
+        .then((result) => {
+          if (result.value.err) {
+            console.warn(`Transaction ${signature} not confirmed: ${result.value.err?.toString()}`);
+          }
+        })
+        .catch((error) => {
+          console.warn(`Transaction ${signature} confirmation failed: ${(error as Error).message}`);
+        });
 
       return {
         signature,
-        confirmed: true,
+        status: 'submitted',
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         signature: '',
-        confirmed: false,
+        status: 'failed',
         error: errorMessage,
       };
     }
@@ -131,7 +137,7 @@ export class TransactionSender {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const result = await this.send(transaction, signers);
 
-      if (result.confirmed) {
+      if (result.status !== 'failed') {
         return result;
       }
 
@@ -153,7 +159,7 @@ export class TransactionSender {
 
     return {
       signature: '',
-      confirmed: false,
+      status: 'failed',
       error: lastError ?? 'Max retries exceeded',
     };
   }

@@ -56,9 +56,15 @@ export class PlacementExecutor {
           });
           const txDuration = Date.now() - txStart;
 
-          if (result.confirmed) {
+          if (result.status !== 'failed') {
             const signatureLabel = result.signature ? ` - ${result.signature.slice(0, 8)}...` : '';
-            this.logger.info(`  ✓ Square #${squareLabel} submitted (${txDuration}ms)${signatureLabel}`);
+            const statusLabel =
+              result.status === 'confirmed'
+                ? 'confirmed'
+                : result.status === 'processed'
+                  ? 'processed'
+                  : 'submitted (unconfirmed)';
+            this.logger.info(`  ✓ Square #${squareLabel} ${statusLabel} (${txDuration}ms)${signatureLabel}`);
 
             this.roundMetricsManager?.recordPlacement(
               roundId,

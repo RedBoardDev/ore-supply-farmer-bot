@@ -61,7 +61,7 @@ export async function ensureCheckpoint(
           confirmationCommitment: config.transaction.confirmationMode,
         });
 
-        if (!result.confirmed) {
+        if (result.status === 'failed') {
           throw new Error(result.error ?? 'Checkpoint transaction failed');
         }
 
