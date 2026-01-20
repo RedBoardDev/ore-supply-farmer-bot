@@ -47,6 +47,8 @@ const log = createChildLogger('bot-registry');
 
 export function IoCmoduleRegistry(botConfig: ConfigSchema, env: EnvSchema): Container {
   const container = getGlobalContainer();
+  // Ensure a clean container when re-initializing in the same process.
+  container.clear();
 
   container.registerInstance('BotConfig', botConfig);
 
