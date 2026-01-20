@@ -306,6 +306,16 @@ export class Core extends OreBot {
     this.getBlockhashCache().stop();
     this.getSlotCache().stop();
 
+    if (this.subscriptionId !== null) {
+      try {
+        await this.getBlockchain().unsubscribeSlot(this.subscriptionId);
+      } catch (error) {
+        log.debug(`Failed to unsubscribe slot listener: ${(error as Error).message}`);
+      } finally {
+        this.subscriptionId = null;
+      }
+    }
+
     try {
       await this.getRoundStreamManager().stop();
     } catch (error) {
