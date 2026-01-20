@@ -148,6 +148,14 @@ export class AttemptPlacement {
       return false;
     }
 
+    if (this.config.fastMode) {
+      const cachedSlot = this.slotCache?.isRunning() ? this.slotCache.getSlotSync() : null;
+      if (cachedSlot !== null && cachedSlot >= endSlot) {
+        log.debug(`Round ${expectedRoundId}: Fast guard aborted (currentSlot=${cachedSlot} >= endSlot=${endSlot})`);
+        return false;
+      }
+    }
+
     if (!this.config.fastMode) {
       const board = await this.blockchain.getBoard();
       if (!board) {
