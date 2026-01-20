@@ -111,8 +111,11 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema, env: EnvSchema): Cont
     return keypair.publicKey;
   });
 
-  // Blockchain Adapter
-  container.registerInstance<BlockchainPort>('BlockchainPort', new SolanaBlockchainAdapter(botConfig));
+  // Blockchain Adapter (use shared Solana connection)
+  container.registerInstance<BlockchainPort>(
+    'BlockchainPort',
+    new SolanaBlockchainAdapter(solanaConnection, botConfig),
+  );
 
   // Price Adapter
   container.registerInstance<PricePort>('PricePort', new JupiterPriceAdapter(env));

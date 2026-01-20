@@ -3,7 +3,7 @@ import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.p
 import type { ConfigSchema } from '@osb/config';
 import { Board, Miner, Round, RoundId, Slot } from '@osb/domain';
 import type { SolanaAddress } from '@osb/domain/aggregates/miner.aggregate';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { type Connection, PublicKey } from '@solana/web3.js';
 import { BOARD_ADDRESS, deriveMinerPda, deriveRoundPda } from '../../constants';
 
 export class SolanaBlockchainAdapter implements BlockchainPort {
@@ -11,12 +11,9 @@ export class SolanaBlockchainAdapter implements BlockchainPort {
   private readonly boardAddress: PublicKey;
   private readonly config: ConfigSchema;
 
-  constructor(config: ConfigSchema) {
+  constructor(connection: Connection, config: ConfigSchema) {
     this.config = config;
-    this.connection = new Connection(config.rpc.httpEndpoint, {
-      commitment: config.rpc.commitment,
-      wsEndpoint: config.rpc.wsEndpoint,
-    });
+    this.connection = connection;
     this.boardAddress = BOARD_ADDRESS;
   }
 
