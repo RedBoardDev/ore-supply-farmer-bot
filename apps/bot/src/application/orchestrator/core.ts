@@ -198,7 +198,8 @@ export class Core extends OreBot {
 
   private async syncInitialBoardState(board: Board): Promise<void> {
     this.currentBoard = board;
-    this.roundState = this.roundHandler.resetState();
+    // Need to use Object.assign to avoid mutating the original object
+    Object.assign(this.roundState, this.roundHandler.resetState());
 
     const roundId = board.roundId.value;
     log.info(`Round ${roundId}: Tracking (slots ${board.startSlot} → ${board.endSlot})`);
@@ -226,7 +227,8 @@ export class Core extends OreBot {
 
     await this.getRoundMetricsManager()?.finalizeRounds(roundId);
     this.currentBoard = null;
-    this.roundState = this.roundHandler.resetState();
+    // Need to use Object.assign to avoid mutating the original object
+    Object.assign(this.roundState, this.roundHandler.resetState());
   }
 
   private async loadLatencyHistory(): Promise<void> {
