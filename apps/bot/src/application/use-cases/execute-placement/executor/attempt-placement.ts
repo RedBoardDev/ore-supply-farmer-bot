@@ -109,6 +109,7 @@ export class AttemptPlacement {
       this.blockhashCache,
       this.connection,
       authorityKeypair,
+      this.config.transaction,
       log,
       this.roundMetricsManager,
     );

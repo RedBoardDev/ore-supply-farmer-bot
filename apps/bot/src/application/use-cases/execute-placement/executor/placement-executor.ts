@@ -5,6 +5,7 @@ import type { RoundMetricsManager } from '@osb/bot/infrastructure/adapters/round
 import type { TransactionBuilder } from '@osb/bot/infrastructure/adapters/transaction/transaction-builder';
 import type { TransactionSender } from '@osb/bot/infrastructure/adapters/transaction/transaction-sender.adapter';
 import type { LoggerPort } from '@osb/bot/infrastructure/logging/logger.port';
+import type { TransactionConfig } from '@osb/config';
 import type { Connection, Keypair, TransactionInstruction } from '@solana/web3.js';
 
 export interface PlacementExecutionResult {
@@ -26,6 +27,7 @@ export class PlacementExecutor {
     private readonly blockhashCache: BlockhashCache,
     private readonly connection: Connection,
     private readonly authorityKeypair: Keypair,
+    private readonly transactionConfig: TransactionConfig,
     private readonly logger: LoggerPort,
     private readonly roundMetricsManager?: RoundMetricsManager | null,
   ) {}
@@ -50,9 +52,13 @@ export class PlacementExecutor {
           ]);
           transaction.recentBlockhash = blockhashContext.blockhash;
 
+          const awaitConfirmation = this.transactionConfig.awaitConfirmation;
+          const awaitProcessed = awaitConfirmation ? false : this.transactionConfig.awaitProcessed;
           const result = await this.transactionSender.send(transaction, [this.authorityKeypair], {
             useCachedBlockhash: true,
             blockhashContext,
+            awaitConfirmation,
+            awaitProcessed,
           });
           const txDuration = Date.now() - txStart;
 
@@ -98,7 +104,7 @@ export class PlacementExecutor {
   ): Promise<void> {
     try {
       const transaction = this.transactionBuilder.buildTransaction(instructions, [this.authorityKeypair.publicKey]);
-      const blockhashContext = await this.connection.getLatestBlockhash('confirmed');
+      const blockhashContext = await this.connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhashContext.blockhash;
       transaction.sign(this.authorityKeypair);
 
