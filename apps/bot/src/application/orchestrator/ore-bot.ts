@@ -33,21 +33,9 @@ export abstract class OreBot {
     return this.container.resolve<BlockchainPort>('BlockchainPort');
   }
 
-  // protected getConnection(): Connection {
-  //   return this.container.resolve<Connection>('SolanaConnection');
-  // }
-
   protected getNotificationPort(): NotificationPort {
     return this.container.resolve<NotificationPort>('NotificationPort');
   }
-
-  // protected getAuthorityKeypair(): Keypair | null {
-  //   try {
-  //     return this.container.resolve<Keypair>('AuthorityKeypair');
-  //   } catch {
-  //     return null;
-  //   }
-  // }
 
   protected getAuthorityPublicKey(): PublicKey {
     return this.container.resolve<PublicKey>('AuthorityPublicKey');
@@ -104,45 +92,6 @@ export abstract class OreBot {
   protected getLatencyStorage(): LatencyStoragePort {
     return this.container.resolve<LatencyStoragePort>('LatencyStoragePort');
   }
-
-  // protected getEvStrategyService(): EvStrategyService {
-  //   return this.container.resolve<EvStrategyService>('EvStrategyService');
-  // }
-
-  // protected getCheckpointService(): CheckpointService {
-  //   return this.container.resolve<CheckpointService>('CheckpointService');
-  // }
-
-  // protected getMiningCostStrategy(): MiningCostStrategy {
-  //   return this.container.resolve<MiningCostStrategy>('MiningCostStrategy');
-  // }
-
-  // ============================================================================
-  // Transactions
-  // ============================================================================
-
-  // protected getTransactionBuilder(): TransactionBuilder {
-  //   return this.container.resolve<TransactionBuilder>('TransactionBuilder');
-  // }
-
-  // protected getTransactionSender(): TransactionSender {
-  //   return this.container.resolve<TransactionSender>('TransactionSender');
-  // }
-
-  // ============================================================================
-  // Utility
-  // ============================================================================
-
-  // /**
-  //  * Get current slot from cache or connection.
-  //  */
-  // protected async getCurrentSlot(): Promise<number> {
-  //   const slotCache = this.getSlotCache();
-  //   if (slotCache.isRunning()) {
-  //     return slotCache.getSlot();
-  //   }
-  //   return this.getConnection().getSlot();
-  // }
 
   // /**
   //  * Get fresh blockhash for transactions.
