@@ -359,7 +359,7 @@ export class RunLoop {
       // Fetch context in parallel
       const [miner, balanceRaw, pricePort] = await Promise.all([
         this.blockchain.getMiner(authorityKey.toBase58()),
-        this.connection.getBalance(authorityKey, 'confirmed'),
+        this.connection.getBalance(authorityKey),
         this.container.resolve<PricePort>('PricePort'),
       ]);
 

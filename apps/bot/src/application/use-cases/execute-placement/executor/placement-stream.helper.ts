@@ -82,7 +82,7 @@ export class PlacementStreamHelper {
       try {
         const [miner, balanceRaw] = await Promise.all([
           this.blockchain.getMiner(this.authorityPublicKey.toBase58()),
-          this.connection.getBalance(this.authorityPublicKey, 'confirmed'),
+          this.connection.getBalance(this.authorityPublicKey),
         ]);
 
         if (!miner) {
