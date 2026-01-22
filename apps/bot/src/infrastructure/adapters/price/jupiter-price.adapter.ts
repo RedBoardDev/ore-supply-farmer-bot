@@ -2,12 +2,12 @@ import type { PricePort, PriceQuote } from '@osb/bot/domain/services/ports/price
 import type { EnvSchema } from '@osb/config/env';
 import { ORE_TOKEN_ADDRESS, SOL_TOKEN_ADDRESS } from '../../constants';
 
-const JUPITER_V3_API = 'https://api.jup.ag/v3/price';
+const JUPITER_V3_API = 'https://api.jup.ag/price/v3';
 const DEFAULT_FETCH_TIMEOUT_MS = 1500;
 const DEFAULT_REFRESH_INTERVAL_MS = 60_000;
 
 interface JupiterV3PriceResponse {
-  data: Record<string, { id: string; usdPrice: number; usdPriceTimestamp?: number }>;
+  [address: string]: { usdPrice: number | string };
 }
 
 export class JupiterPriceAdapter implements PricePort {
@@ -81,27 +81,33 @@ export class JupiterPriceAdapter implements PricePort {
         signal: controller?.signal,
       });
 
-      if (!response.ok) {
+      const json = (await response.json()) as unknown;
+
+      if (
+        !response.ok ||
+        'error' in (json as Record<string, unknown>) ||
+        'message' in (json as Record<string, unknown>)
+      ) {
         throw new Error(`Jupiter API error: ${response.status}`);
       }
 
-      const json = (await response.json()) as JupiterV3PriceResponse;
+      const data = json as JupiterV3PriceResponse;
+      const oreAddr = ORE_TOKEN_ADDRESS.toBase58();
+      const solAddr = SOL_TOKEN_ADDRESS.toBase58();
 
-      // Get USD prices for both tokens
-      const oreData = json.data?.[ORE_TOKEN_ADDRESS.toBase58()];
-      const solData = json.data?.[SOL_TOKEN_ADDRESS.toBase58()];
-
-      const oreUsdPrice = oreData?.usdPrice ?? 0;
-      const solUsdPrice = solData?.usdPrice ?? 0;
-
-      if (oreUsdPrice <= 0) {
-        throw new Error('Invalid ORE USD price');
-      }
-      if (solUsdPrice <= 0) {
-        throw new Error('Invalid SOL USD price');
+      const oreData = data[oreAddr];
+      const solData = data[solAddr];
+      if (!oreData || !solData) {
+        throw new Error(`Tokens not found in Jupiter response`);
       }
 
-      // Calculate SOL per ORE ratio
+      const oreUsdPrice = Number(oreData.usdPrice);
+      const solUsdPrice = Number(solData.usdPrice);
+
+      if (!Number.isFinite(oreUsdPrice) || !Number.isFinite(solUsdPrice) || oreUsdPrice <= 0 || solUsdPrice <= 0) {
+        throw new Error(`Invalid prices: ORE=${oreUsdPrice}, SOL=${solUsdPrice}`);
+      }
+
       const solPerOre = oreUsdPrice / solUsdPrice;
       const netSolPerOre = solPerOre * 0.9;
 
