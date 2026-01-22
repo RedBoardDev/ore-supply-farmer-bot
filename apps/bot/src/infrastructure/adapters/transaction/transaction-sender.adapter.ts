@@ -19,11 +19,6 @@ export class TransactionSender {
         transaction.feePayer = firstSigner.publicKey;
       }
 
-      // Sign with all signers
-      if (signers.length > 0) {
-        transaction.sign(...signers);
-      }
-
       // Get or use existing blockhash
       let blockhashInfo: { blockhash: string; lastValidBlockHeight: number };
       const confirmationCommitment = options?.confirmationCommitment ?? this.config.transaction.confirmationMode;
@@ -47,6 +42,11 @@ export class TransactionSender {
         // Get fresh blockhash
         blockhashInfo = await this.connection.getLatestBlockhash(confirmationCommitment);
         transaction.recentBlockhash = blockhashInfo.blockhash;
+      }
+
+      // Sign with all signers after blockhash is set
+      if (signers.length > 0) {
+        transaction.sign(...signers);
       }
 
       // Serialize and send

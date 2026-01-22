@@ -37,6 +37,7 @@ export class RunLoop {
   private attemptPlacementRef: AttemptPlacement | null = null;
   private readonly slotCache: SlotCache | null = null;
   private claimInFlight: Promise<bigint> | null = null;
+  private lastKnownSlot = 0;
 
   constructor(
     private readonly config: ConfigSchema,
@@ -226,14 +227,30 @@ export class RunLoop {
   }
 
   private async getCurrentSlot(): Promise<number> {
-    if (this.slotCache?.isRunning()) {
-      return this.slotCache.getSlot();
+    if (this.slotCache) {
+      const cachedSlot = this.slotCache.isRunning() ? this.slotCache.getSlot() : this.slotCache.getSlotSync();
+      if (cachedSlot > 0) {
+        this.lastKnownSlot = cachedSlot;
+        return cachedSlot;
+      }
     }
+
     try {
-      return await this.connection.getSlot();
+      const slot = await this.connection.getSlot();
+      if (slot > 0) {
+        this.lastKnownSlot = slot;
+        return slot;
+      }
     } catch {
-      return 0;
+      // fall through to lastKnownSlot
     }
+
+    if (this.lastKnownSlot > 0) {
+      log.debug(`Slot RPC unavailable; falling back to last known slot ${this.lastKnownSlot}`);
+      return this.lastKnownSlot;
+    }
+
+    return 0;
   }
 
   private async handleRoundTransition(roundId: bigint, endSlot: number): Promise<void> {
