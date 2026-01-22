@@ -30,11 +30,8 @@ export async function ensureCheckpoint(
     const needsCheckpoint = checkpointService.needsCheckpoint(miner, roundId);
 
     if (!needsCheckpoint) {
-      logger.debug('Checkpoint not needed');
       return true;
     }
-
-    logger.info(`Miner needs checkpoint (current: ${miner.checkpointId}, target: ${roundId.value})`);
 
     // Use CheckpointService.ensureCheckpoint with inflight tracking
     const checkpointSubmitted = await checkpointService.ensureCheckpoint(
@@ -42,6 +39,7 @@ export async function ensureCheckpoint(
       roundId,
       authorityAddress,
       async (_instructionData: Uint8Array) => {
+        logger.info(`Sending checkpoint for round ${roundId.value}`);
         const transactionBuilder = container.resolve<TransactionBuilder>('TransactionBuilder');
         const transactionSender = container.resolve<TransactionSender>('TransactionSender');
         const keypair = container.resolve<Keypair>('AuthorityKeypair');
@@ -69,12 +67,10 @@ export async function ensureCheckpoint(
       },
     );
 
-    if (checkpointSubmitted) {
-      logger.info('Checkpoint submitted successfully');
-      return true;
+    if (!checkpointSubmitted) {
+      logger.warn('Checkpoint was not submitted (may already be in progress)');
     }
-    logger.warn('Checkpoint was not submitted (may already be in progress)');
-    return false;
+    return checkpointSubmitted;
   } catch (error) {
     logger.error('Error during checkpoint', error as Error);
     return false;
