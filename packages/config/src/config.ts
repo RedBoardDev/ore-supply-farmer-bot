@@ -169,6 +169,8 @@ export type MiningCostConfig = z.infer<typeof miningCostSchema>;
 
 export const configFileSchema = z
   .object({
+    $schema: z.string().optional(),
+    $comment: z.string().optional(),
     fastMode: z.boolean().default(true),
     telemetry: telemetryFileSchema,
     rpc: rpcFileSchema,

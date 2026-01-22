@@ -4,8 +4,8 @@ import type { ZodIssue } from 'zod';
 import { type ConfigFileSchema, type ConfigSchema, configFileSchema, configSchema } from './config';
 import { type EnvSchema, envSchema } from './env';
 
-const DEFAULT_CONFIG_PATH = path.resolve(process.cwd(), 'config/config.json');
-const DEFAULT_ENV_PATH = path.resolve(process.cwd(), 'config/.env');
+const DEFAULT_CONFIG_PATH = resolveConfigPath('config/config.json');
+const DEFAULT_ENV_PATH = resolveConfigPath('config/.env');
 
 export interface LoadOptions {
   configPath?: string;
@@ -154,4 +154,23 @@ export function validateConfig(config: unknown): config is ConfigSchema {
 export function validateEnv(env: unknown): env is EnvSchema {
   const result = envSchema.safeParse(env);
   return result.success;
+}
+
+function resolveConfigPath(relativePath: string): string {
+  let currentDir = process.cwd();
+
+  while (true) {
+    const candidate = path.resolve(currentDir, relativePath);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  return path.resolve(process.cwd(), relativePath);
 }
