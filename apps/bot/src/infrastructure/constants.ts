@@ -5,7 +5,14 @@ export const SOL_TOKEN_ADDRESS = new PublicKey('So111111111111111111111111111111
 
 export const ORE_PROGRAM_ID = new PublicKey('oreV3EG1i9BEgiAJ8b177Z2S2rMarzak4NMv1kULvWv');
 export const ENTROPY_PROGRAM_ID = new PublicKey('3jSkUuYBoJzQPMEzTvkDFXCZUBksPamrVhrnHR9igu2X');
-export const BOARD_ADDRESS = new PublicKey('oreoR6mC2vG9BYaDMPE5VvLdYZ7W1dVVNLdcX1zCwTpu');
+
+const BOARD_SEED = Buffer.from('board');
+
+export function deriveBoardPda(): PublicKey {
+  return PublicKey.findProgramAddressSync([BOARD_SEED], ORE_PROGRAM_ID)[0];
+}
+
+export const BOARD_ADDRESS = deriveBoardPda();
 
 export function deriveRoundPda(roundId: bigint): PublicKey {
   const idBuffer = Buffer.alloc(8);
