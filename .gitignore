@@ -46,6 +46,7 @@ Thumbs.db
 .env.local
 .env.*.local
 *.local
+config/config.json
 
 # =============================================
 # Test & Coverage

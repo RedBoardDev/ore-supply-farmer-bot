@@ -2,13 +2,12 @@ import type { PricePort, PriceQuote } from '@osb/bot/domain/services/ports/price
 import type { EnvSchema } from '@osb/config/env';
 import { ORE_TOKEN_ADDRESS, SOL_TOKEN_ADDRESS } from '../../constants';
 
-/** @deprecated move to V3 */
-const JUPITER_API = 'https://api.jup.ag/price/v2';
+const JUPITER_V3_API = 'https://api.jup.ag/v3/price';
 const DEFAULT_FETCH_TIMEOUT_MS = 1500;
 const DEFAULT_REFRESH_INTERVAL_MS = 60_000;
 
-interface JupiterPriceResponse {
-  data: Record<string, { price: number | string }>;
+interface JupiterV3PriceResponse {
+  data: Record<string, { id: string; usdPrice: number; usdPriceTimestamp?: number }>;
 }
 
 export class JupiterPriceAdapter implements PricePort {
@@ -71,9 +70,8 @@ export class JupiterPriceAdapter implements PricePort {
       : null;
 
     try {
-      const url = new URL(JUPITER_API);
-      url.searchParams.set('ids', ORE_TOKEN_ADDRESS.toBase58());
-      url.searchParams.set('vsToken', SOL_TOKEN_ADDRESS.toBase58());
+      const url = new URL(JUPITER_V3_API);
+      url.searchParams.set('ids', [ORE_TOKEN_ADDRESS.toBase58(), SOL_TOKEN_ADDRESS.toBase58()].join(','));
 
       const response = await fetch(url, {
         method: 'GET',
@@ -87,14 +85,24 @@ export class JupiterPriceAdapter implements PricePort {
         throw new Error(`Jupiter API error: ${response.status}`);
       }
 
-      const json = (await response.json()) as JupiterPriceResponse;
-      const priceRaw = json.data?.[ORE_TOKEN_ADDRESS.toBase58()]?.price;
-      const solPerOre = typeof priceRaw === 'string' ? Number.parseFloat(priceRaw) : (priceRaw ?? 0);
+      const json = (await response.json()) as JupiterV3PriceResponse;
 
-      if (solPerOre <= 0) {
-        throw new Error('Invalid ORE price');
+      // Get USD prices for both tokens
+      const oreData = json.data?.[ORE_TOKEN_ADDRESS.toBase58()];
+      const solData = json.data?.[SOL_TOKEN_ADDRESS.toBase58()];
+
+      const oreUsdPrice = oreData?.usdPrice ?? 0;
+      const solUsdPrice = solData?.usdPrice ?? 0;
+
+      if (oreUsdPrice <= 0) {
+        throw new Error('Invalid ORE USD price');
+      }
+      if (solUsdPrice <= 0) {
+        throw new Error('Invalid SOL USD price');
       }
 
+      // Calculate SOL per ORE ratio
+      const solPerOre = oreUsdPrice / solUsdPrice;
       const netSolPerOre = solPerOre * 0.9;
 
       return {
