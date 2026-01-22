@@ -39,6 +39,7 @@ import type { ConfigSchema } from '@osb/config';
 import type { EnvSchema } from '@osb/config/env';
 import { Miner, Round, RoundId } from '@osb/domain';
 import { Connection, Keypair, type PublicKey } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { type BlockhashCache, BlockhashCacheAdapter } from '../adapters/blockchain/blockhash-cache.adapter';
 import { SolanaBlockchainAdapter } from '../adapters/blockchain/solana.adapter';
 import { type Container, getGlobalContainer } from './container';
@@ -68,13 +69,7 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema, env: EnvSchema): Cont
 
   // Wallet keypair - only required in live mode
   container.register('WalletKeypair', () => {
-    const envVar = env.WALLET_KEYPAIR;
-    const privateKeyBase58 = process.env[envVar];
-
-    // Try fallback env var if primary not set
-    if (!privateKeyBase58) {
-      throw new Error(`Missing wallet keypair env var: ${envVar}`);
-    }
+    const privateKeyBase58 = env.WALLET_KEYPAIR;
 
     // Parse private key from various formats
     try {
@@ -91,7 +86,6 @@ export function IoCmoduleRegistry(botConfig: ConfigSchema, env: EnvSchema): Cont
       }
 
       // Default: base58 format
-      const bs58 = require('bs58');
       return Buffer.from(bs58.decode(privateKeyBase58));
     } catch (error) {
       throw new Error(`Failed to parse wallet keypair: ${(error as Error).message}`);
