@@ -255,9 +255,6 @@ export class RunLoop {
 
   private async handleRoundTransition(roundId: bigint, endSlot: number): Promise<void> {
     if (this.currentRoundId !== null) {
-      log.info('');
-      log.info('');
-      log.info('');
       log.info('--- New Round ---');
     }
 
@@ -322,11 +319,10 @@ export class RunLoop {
   }
 
   private getAttemptThreshold(baseThreshold: number): number {
-    const safetySlots = Math.max(0, this.config.timing.safetySlots);
-    const lead = safetySlots >= 1 ? 1 : 0;
+    const safetySlots = this.config.timing.safetySlots;
     const maxThreshold = this.config.timing.maxSlots;
     const minThreshold = this.config.timing.minSlots;
-    const withLead = Math.min(maxThreshold, baseThreshold + lead);
+    const withLead = Math.min(maxThreshold, baseThreshold + safetySlots);
     return Math.max(minThreshold, withLead);
   }
 

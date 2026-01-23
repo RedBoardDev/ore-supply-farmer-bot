@@ -88,7 +88,13 @@ export class Core extends OreBot {
 
     // Subscribe to slot changes
     this.subscriptionId = await this.getBlockchain().onSlotChange(async (slot) => {
-      if (this.currentBoard && slot >= this.currentBoard.endSlot.value) {
+      if (
+        this.currentBoard &&
+        slot >= this.currentBoard.endSlot.value &&
+        this.roundState.roundEndLoggedForRound !== this.currentBoard.roundId.value
+      ) {
+        // Set flag BEFORE async call to prevent race condition
+        this.roundState.roundEndLoggedForRound = this.currentBoard.roundId.value;
         await this.handleRoundEnd();
       }
     });
@@ -180,6 +186,13 @@ export class Core extends OreBot {
       return;
     }
 
+    // Guard: prevent stale board updates after round has ended.
+    // If we've already logged round end for this roundId, skip the update
+    // since the board watcher might still be polling the old board.
+    if (this.roundState.roundEndLoggedForRound === snapshot.roundId) {
+      return;
+    }
+
     try {
       this.currentBoard = Board.create(
         RoundId.create(snapshot.roundId),
@@ -213,6 +226,13 @@ export class Core extends OreBot {
     if (!this.currentBoard) return;
 
     const roundId = this.currentBoard.roundId.value;
+
+    // Guard: prevent duplicate round end logs
+    if (this.roundState.roundEndLoggedForRound === roundId) {
+      return;
+    }
+    this.roundState.roundEndLoggedForRound = roundId;
+
     log.info(`Round ${roundId} ended`);
 
     const authorityKey = this.getAuthorityPublicKey();
