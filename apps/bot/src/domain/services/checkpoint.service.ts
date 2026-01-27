@@ -3,7 +3,6 @@ import type { RoundId } from '@osb/domain/value-objects/round-id.vo';
 import type { CheckpointServicePort } from './ports/checkpoint.port';
 
 export class CheckpointService implements CheckpointServicePort {
-  private lastCheckpointedRound: bigint | null = null;
   private inflight = new Map<bigint, Promise<boolean>>();
 
   /**
@@ -28,26 +27,21 @@ export class CheckpointService implements CheckpointServicePort {
    */
   async ensureCheckpoint(
     miner: Miner,
-    _currentRoundId: RoundId,
+    currentRoundId: RoundId,
     authorityAddress: SolanaAddress,
     submitFn: (instructionData: Uint8Array) => Promise<{ signature: string }>,
   ): Promise<boolean> {
+    // Checkpoint for the round the miner last participated in
+    // This advances miner.checkpointId to catch up with miner.roundId
     const targetRound = miner.roundId;
 
     // If miner round is 0, already initialized
     if (targetRound === 0n) {
-      this.lastCheckpointedRound = targetRound;
       return true;
     }
 
     // If already checkpointed to this round
     if (miner.checkpointId === targetRound) {
-      this.lastCheckpointedRound = targetRound;
-      return true;
-    }
-
-    // If we already submitted checkpoint for this round
-    if (this.lastCheckpointedRound === targetRound) {
       return true;
     }
 
@@ -60,12 +54,6 @@ export class CheckpointService implements CheckpointServicePort {
 
     // Submit checkpoint
     const promise = this.submitCheckpoint(targetRound, authorityAddress, submitFn)
-      .then((success) => {
-        if (success) {
-          this.lastCheckpointedRound = targetRound;
-        }
-        return success;
-      })
       .finally(() => {
         this.inflight.delete(targetRound);
       });

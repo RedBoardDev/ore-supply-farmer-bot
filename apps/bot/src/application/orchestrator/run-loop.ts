@@ -115,18 +115,18 @@ export class RunLoop {
           });
         }
 
-        // Proactive checkpoint: 10 slots before placement window
-        if (
-          this.state.checkpointTriggeredForRound !== roundId &&
-          remainingSlots <= placementThreshold + 10 &&
-          remainingSlots > placementThreshold
-        ) {
-          this.state.checkpointTriggeredForRound = roundId;
-          log.info(`Round ${roundId}: Proactive checkpoint (${remainingSlots} slots remaining)`);
-          void this.roundHandler.ensureCheckpoint(this.blockchain, RoundId.create(roundId)).catch((error) => {
-            log.debug(`Proactive checkpoint failed: ${(error as Error).message}`);
-          });
-        }
+        // Proactive checkpoint: 10 slots before placement window - DISABLED TEMPORARILY
+        // if (
+        //   this.state.checkpointTriggeredForRound !== roundId &&
+        //   remainingSlots <= placementThreshold + 10 &&
+        //   remainingSlots > placementThreshold
+        // ) {
+        //   this.state.checkpointTriggeredForRound = roundId;
+        //   log.info(`Round ${roundId}: Proactive checkpoint (${remainingSlots} slots remaining)`);
+        //   void this.roundHandler.ensureCheckpoint(this.blockchain, RoundId.create(roundId)).catch((error) => {
+        //     log.debug(`Proactive checkpoint failed: ${(error as Error).message}`);
+        //   });
+        // }
 
         // Start Round stream early (10-12 slots before placement)
         if (

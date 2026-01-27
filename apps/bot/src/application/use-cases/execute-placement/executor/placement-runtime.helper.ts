@@ -2,10 +2,11 @@ import type { RoundHandler } from '@osb/bot/application/use-cases';
 import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.port';
 import type { LatencyServicePort, LatencyStoragePort } from '@osb/bot/domain/services/ports/latency.port';
 import type { SlotCache } from '@osb/bot/infrastructure/adapters/cache/slot-cache.adapter';
+import { getGlobalContainer } from '@osb/bot/infrastructure/di/container';
 import type { LoggerPort } from '@osb/bot/infrastructure/logging/logger.port';
 import { RoundId } from '@osb/domain';
 import { SLOT_DURATION_MS } from '@osb/domain/value-objects/slot.vo';
-import type { Connection } from '@solana/web3.js';
+import type { Connection, PublicKey } from '@solana/web3.js';
 
 export class PlacementRuntimeHelper {
   constructor(
@@ -28,15 +29,28 @@ export class PlacementRuntimeHelper {
       return false;
     }
 
-    if (checkpointDuration > 100) {
-      this.logger.warn(
-        `Round ${roundId}: Checkpoint ensure took ${checkpointDuration}ms (expected <100ms with proactive checkpoint)`,
-      );
-    } else if (checkpointDuration > 0) {
-      this.logger.debug(`Round ${roundId}: Checkpoint ready (${checkpointDuration}ms)`);
+    // Verify miner is actually checkpointed before proceeding
+    // This prevents deploy from failing with "Miner has not checkpointed"
+    let attempts = 0;
+    const maxAttempts = 10;
+    while (attempts < maxAttempts) {
+      // Get authority address from container
+      const container = getGlobalContainer();
+      const authorityKey = container.resolve<PublicKey>('AuthorityPublicKey');
+      const authorityAddress = authorityKey.toBase58();
+
+      // Re-fetch miner to verify checkpoint
+      const miner = await this.blockchain.getMiner(authorityAddress);
+      if (miner && miner.checkpointId === miner.roundId) {
+        this.logger.debug(`Round ${roundId}: Miner checkpoint verified (${checkpointDuration}ms + ${attempts * 500}ms wait)`);
+        return true;
+      }
+      attempts++;
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    return true;
+    this.logger.warn(`Round ${roundId}: Miner checkpoint not verified after ${attempts} attempts`);
+    return false;
   }
 
   async getCurrentSlot(): Promise<number> {
