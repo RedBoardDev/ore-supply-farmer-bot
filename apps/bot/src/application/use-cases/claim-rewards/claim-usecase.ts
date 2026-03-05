@@ -8,6 +8,7 @@ import type { LoggerPort } from '@osb/bot/infrastructure/logging/logger.port';
 import type { ConfigSchema } from '@osb/config';
 import { rewardsClaimedEvent } from '@osb/domain';
 import type { Keypair, PublicKey } from '@solana/web3.js';
+import { recordError, recordRewardsClaimed } from '../../../infrastructure/metrics/prometheus';
 
 export async function checkAndClaim(
   blockchain: BlockchainPort,
@@ -75,13 +76,16 @@ export async function checkAndClaim(
         }
       } catch {}
 
+      recordRewardsClaimed(Number(rewardsSol) / 1e9, 0);
       logger.info(`Rewards claimed successfully (${claimDuration}ms)`);
       return rewardsSol;
     }
     logger.error(`Claim failed: ${result.error ?? 'unknown error'}`);
+    recordError('claim', 'error');
     return 0n;
   } catch (error) {
     logger.error('Error during claim check', error as Error);
+    recordError('claim', 'error');
     return 0n;
   }
 }

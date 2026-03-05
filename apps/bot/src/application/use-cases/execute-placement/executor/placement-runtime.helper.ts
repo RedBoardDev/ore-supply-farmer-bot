@@ -42,11 +42,13 @@ export class PlacementRuntimeHelper {
       // Re-fetch miner to verify checkpoint
       const miner = await this.blockchain.getMiner(authorityAddress);
       if (miner && miner.checkpointId === miner.roundId) {
-        this.logger.debug(`Round ${roundId}: Miner checkpoint verified (${checkpointDuration}ms + ${attempts * 500}ms wait)`);
+        this.logger.debug(
+          `Round ${roundId}: Miner checkpoint verified (${checkpointDuration}ms + ${attempts * 500}ms wait)`,
+        );
         return true;
       }
       attempts++;
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     this.logger.warn(`Round ${roundId}: Miner checkpoint not verified after ${attempts} attempts`);

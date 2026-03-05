@@ -7,6 +7,7 @@ import type { LoggerPort } from '@osb/bot/infrastructure/logging/logger.port';
 import type { ConfigSchema } from '@osb/config';
 import type { RoundId } from '@osb/domain';
 import type { Keypair, PublicKey } from '@solana/web3.js';
+import { recordCheckpoint, recordError } from '../../../infrastructure/metrics/prometheus';
 
 export async function ensureCheckpoint(
   blockchain: BlockchainPort,
@@ -15,6 +16,7 @@ export async function ensureCheckpoint(
   logger: LoggerPort,
 ): Promise<boolean> {
   const container = getGlobalContainer();
+  const checkpointStartTime = Date.now();
 
   try {
     const authorityKey: PublicKey = container.resolve('AuthorityPublicKey');
@@ -66,18 +68,24 @@ export async function ensureCheckpoint(
 
         // Wait for checkpoint to be processed before proceeding
         // This prevents deploy from failing with "Miner has not checkpointed"
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
         return { signature: result.signature };
       },
     );
 
-    if (!checkpointSubmitted) {
-      logger.warn('Checkpoint was not submitted (may already be in progress)');
+    const duration = (Date.now() - checkpointStartTime) / 1000;
+
+    if (checkpointSubmitted) {
+      recordCheckpoint(duration, 'success');
     }
+
     return checkpointSubmitted;
   } catch (error) {
+    const duration = (Date.now() - checkpointStartTime) / 1000;
     logger.error('Error during checkpoint', error as Error);
+    recordCheckpoint(duration, 'failure');
+    recordError('checkpoint', 'error');
     return false;
   }
 }

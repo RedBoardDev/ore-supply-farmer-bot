@@ -5,7 +5,15 @@ import type { Round } from '@osb/domain/aggregates/round.aggregate';
 import type { OrePrice } from '@osb/domain/value-objects/ore-price.vo';
 import type { EvStrategyConfig, EvStrategyServicePort, PlacementDecision } from './ports/ev-strategy.port';
 
-const log = createChildLogger('ev-strategy');
+let evStrategyLogger: ReturnType<typeof createChildLogger> | null = null;
+
+function getLogger(): ReturnType<typeof createChildLogger> {
+  if (!evStrategyLogger) {
+    evStrategyLogger = createChildLogger('ev-strategy');
+  }
+
+  return evStrategyLogger;
+}
 
 const PROBABILITY_OF_WIN = 1 / 25; // 4% chance per square
 const SOL_PAYOUT_FEE_FACTOR = 0.9; // 90% after 10% program fee
@@ -110,7 +118,7 @@ export class EvStrategyService implements EvStrategyServicePort {
     const bufferSol = Number(this.config.balanceBufferLamports) / Number(LAMPORTS_PER_SOL);
     const spendableBalanceSol = Math.max(0, balanceSol - bufferSol);
     if (spendableBalanceSol <= 0) {
-      log.debug('No spendable balance after reserve buffer; skipping placements.');
+      getLogger().debug('No spendable balance after reserve buffer; skipping placements.');
       return [];
     }
 
@@ -186,7 +194,7 @@ export class EvStrategyService implements EvStrategyServicePort {
     const baseStakeSol = Math.max(bestOthersStakeSol * baseStakePercent, minStakeSol);
     const availableExposureSol = Math.max(0, Math.min(maxExposureSol, spendableBalanceSol));
     if (availableExposureSol <= 0) {
-      log.debug('Exposure cap reached before planning; skipping placements.');
+      getLogger().debug('Exposure cap reached before planning; skipping placements.');
       return [];
     }
 
@@ -196,7 +204,7 @@ export class EvStrategyService implements EvStrategyServicePort {
     const decayFactor = Math.max(0.2, 1.0 - Math.max(0, plannedCount - 1) * (volumeDecayPercent / 100));
 
     if (decayFactor < 1.0) {
-      log.debug(
+      getLogger().debug(
         `Volume decay active: ${plannedCount} planned placements -> ${(decayFactor * 100).toFixed(1)}% stake sizing.`,
       );
     }
@@ -306,9 +314,11 @@ export class EvStrategyService implements EvStrategyServicePort {
     }
 
     if (decisions.length === 0) {
-      log.debug('Strategy planner did not find any profitable placements for this round.');
+      getLogger().debug('Strategy planner did not find any profitable placements for this round.');
     } else {
-      log.debug(`Planned ${decisions.length} placement(s); total exposure ${(plannedExposureSol).toFixed(6)} SOL.`);
+      getLogger().debug(
+        `Planned ${decisions.length} placement(s); total exposure ${(plannedExposureSol).toFixed(6)} SOL.`,
+      );
     }
 
     if (decisions.length > 0) {
@@ -359,7 +369,7 @@ export class EvStrategyService implements EvStrategyServicePort {
       stakeSol,
       netOreValueSol,
     });
-    log.debug(
+    getLogger().debug(
       `Recalculate EV -> square #${squareIndex + 1}, stake=${stakeSol.toFixed(6)} SOL, others=${othersStakeSol.toFixed(
         6,
       )} SOL, exposure=${exposureBeforeSol.toFixed(6)} SOL, EV=${evRatio.toFixed(3)}`,

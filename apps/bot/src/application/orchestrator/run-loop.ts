@@ -38,6 +38,7 @@ export class RunLoop {
   private readonly slotCache: SlotCache | null = null;
   private claimInFlight: Promise<bigint> | null = null;
   private lastKnownSlot = 0;
+  private paused = false;
 
   constructor(
     private readonly config: ConfigSchema,
@@ -65,6 +66,10 @@ export class RunLoop {
   async start(): Promise<void> {
     while (!this.stopRequested) {
       try {
+        if (this.paused) {
+          await sleep(250);
+          continue;
+        }
         const board = await this.getBoard();
         if (!board) {
           await sleep(200);
@@ -197,6 +202,14 @@ export class RunLoop {
 
   stop(): void {
     this.stopRequested = true;
+  }
+
+  pause(): void {
+    this.paused = true;
+  }
+
+  resume(): void {
+    this.paused = false;
   }
 
   private async getBoard(): Promise<BoardContext | null> {

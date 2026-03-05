@@ -2,10 +2,19 @@ import type { BoardAccount } from '@osb/bot/application/decoders';
 import type { PricePort } from '@osb/bot/domain/services/ports/price.port';
 import type { RoundState } from '@osb/bot/domain/types/round';
 import type { TransactionBuilder } from '@osb/bot/infrastructure/adapters/transaction/transaction-builder';
+import { registerControlService } from '@osb/bot/infrastructure/control/control-service';
 import { IoCmoduleRegistry } from '@osb/bot/infrastructure/di/module-registry';
 import { createChildLogger } from '@osb/bot/infrastructure/logging/pino-logger';
 import { Board, RoundId, Slot } from '@osb/domain';
 import type { Connection } from '@solana/web3.js';
+import { MetricsServer } from '../../infrastructure/metrics/metrics-server';
+import {
+  initializeMetrics,
+  recordRoundStart,
+  setBotLifecycleState,
+  setBotUp,
+  updateActiveRounds,
+} from '../../infrastructure/metrics/prometheus';
 import { RoundHandler } from '../use-cases';
 import { AttemptPlacement } from '../use-cases/execute-placement/executor/attempt-placement';
 import { OreBot } from './ore-bot';
@@ -14,9 +23,11 @@ import { RunLoop } from './run-loop';
 const log = createChildLogger('core');
 const MAX_U64 = BigInt('18446744073709551615');
 
+export type BotLifecycleState = 'running' | 'paused' | 'stopped';
+
 export class Core extends OreBot {
   // State
-  private isRunning = false;
+  private lifecycleState: BotLifecycleState = 'stopped';
   private currentBoard: Board | null = null;
   private subscriptionId: number | null = null;
   private roundState: RoundState;
@@ -29,6 +40,7 @@ export class Core extends OreBot {
   private attemptPlacement: AttemptPlacement | null = null;
   private stopLoopPromise: Promise<void> | null = null;
   private loopResolve: (() => void) | null = null;
+  private metricsServer: MetricsServer | null = null;
 
   constructor() {
     super();
@@ -37,8 +49,12 @@ export class Core extends OreBot {
   }
 
   async start(): Promise<void> {
-    if (this.isRunning) {
+    if (this.lifecycleState === 'running') {
       log.warn('Bot already running');
+      return;
+    }
+    if (this.lifecycleState === 'paused') {
+      await this.resume();
       return;
     }
 
@@ -110,6 +126,22 @@ export class Core extends OreBot {
     // Start run loop in background
     this.startRunLoop();
 
+    // Start metrics server
+    if (this.config.prometheus?.enabled !== false) {
+      const metricsPort = this.config.prometheus?.port || 3001;
+      this.metricsServer = new MetricsServer({ port: metricsPort, host: '0.0.0.0' });
+      await this.metricsServer.start();
+      log.info(`Metrics server started on port ${metricsPort}`);
+      initializeMetrics();
+      setBotUp(true);
+    }
+
+    // Register control service for API access
+    registerControlService(this);
+
+    // Set bot status metric
+    setBotLifecycleState('running');
+
     // Notify start
     await this.getNotificationPort().send({
       type: 'info',
@@ -117,7 +149,7 @@ export class Core extends OreBot {
       message: 'Bot started',
     });
 
-    this.isRunning = true;
+    this.lifecycleState = 'running';
     log.info('ORE Smart Bot started successfully');
   }
 
@@ -171,6 +203,10 @@ export class Core extends OreBot {
   }
 
   private async handleNewRound(roundId: bigint): Promise<void> {
+    // Record round start for Prometheus metrics
+    recordRoundStart(roundId.toString(), Date.now());
+    updateActiveRounds(1);
+
     // Notify round start to checkpoint service
     this.roundHandler.notifyRoundStart(roundId);
   }
@@ -235,16 +271,7 @@ export class Core extends OreBot {
 
     log.info(`Round ${roundId} ended`);
 
-    const authorityKey = this.getAuthorityPublicKey();
-    const miner = await this.getBlockchain().getMiner(authorityKey.toBase58());
-
-    if (miner) {
-      const delta = miner.rewardsSol;
-      if (delta > 0n) {
-        log.info(`Round ${roundId}: +${Number(delta) / 1e9} SOL rewards`);
-      }
-    }
-
+    updateActiveRounds(0);
     await this.getRoundMetricsManager()?.finalizeRounds(roundId);
     this.currentBoard = null;
     // Need to use Object.assign to avoid mutating the original object
@@ -301,15 +328,27 @@ export class Core extends OreBot {
   }
 
   async stop(): Promise<void> {
-    if (!this.isRunning) return;
+    if (this.lifecycleState === 'stopped') return;
 
     log.info('Stopping ORE Smart Bot...');
+
+    // Set bot status metric
+    setBotLifecycleState('stopped');
 
     // Stop run loop first
     this.runLoop?.stop();
     if (this.stopLoopPromise) {
       await this.stopLoopPromise;
     }
+
+    // Stop metrics server
+    if (this.metricsServer) {
+      setBotUp(false);
+      await this.metricsServer.stop();
+      this.metricsServer = null;
+    }
+
+    updateActiveRounds(0);
 
     // Cleanup infrastructure
     await this.cleanupAfterLoop();
@@ -320,7 +359,7 @@ export class Core extends OreBot {
       message: 'Bot has been stopped',
     });
 
-    this.isRunning = false;
+    this.lifecycleState = 'stopped';
     log.info('ORE Smart Bot stopped');
   }
 
@@ -353,10 +392,51 @@ export class Core extends OreBot {
     this.getPlacementPrefetcher().clear();
   }
 
-  getStatus(): { running: boolean; currentRound?: bigint } {
+  async pause(): Promise<void> {
+    if (this.lifecycleState !== 'running') return;
+    this.runLoop?.pause();
+    this.lifecycleState = 'paused';
+    setBotLifecycleState('paused');
+    log.info('ORE Smart Bot paused');
+  }
+
+  async resume(): Promise<void> {
+    if (this.lifecycleState === 'running') return;
+    if (!this.runLoop) {
+      this.lifecycleState = 'stopped';
+      await this.start();
+      return;
+    }
+    this.runLoop.resume();
+    this.lifecycleState = 'running';
+    setBotLifecycleState('running');
+    log.info('ORE Smart Bot resumed');
+  }
+
+  getStatus(): {
+    running: boolean;
+    state: BotLifecycleState;
+    currentRound?: bigint;
+    currentRoundEndSlot?: number;
+    slotsRemaining?: number;
+  } {
+    const currentRoundEndSlot =
+      this.currentBoard?.endSlot.value !== undefined ? Number(this.currentBoard.endSlot.value) : undefined;
+    let slotsRemaining: number | undefined;
+    if (currentRoundEndSlot !== undefined) {
+      const slotCache = this.getSlotCache();
+      const currentSlot = slotCache.isRunning() ? slotCache.getSlotSync() : slotCache.getSlot();
+      if (currentSlot > 0) {
+        slotsRemaining = Math.max(0, currentRoundEndSlot - currentSlot);
+      }
+    }
+
     return {
-      running: this.isRunning,
+      running: this.lifecycleState === 'running',
+      state: this.lifecycleState,
       currentRound: this.currentBoard?.roundId.value,
+      currentRoundEndSlot,
+      slotsRemaining,
     };
   }
 }

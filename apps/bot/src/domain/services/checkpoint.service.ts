@@ -27,7 +27,7 @@ export class CheckpointService implements CheckpointServicePort {
    */
   async ensureCheckpoint(
     miner: Miner,
-    currentRoundId: RoundId,
+    _currentRoundId: RoundId,
     authorityAddress: SolanaAddress,
     submitFn: (instructionData: Uint8Array) => Promise<{ signature: string }>,
   ): Promise<boolean> {
@@ -53,10 +53,9 @@ export class CheckpointService implements CheckpointServicePort {
     }
 
     // Submit checkpoint
-    const promise = this.submitCheckpoint(targetRound, authorityAddress, submitFn)
-      .finally(() => {
-        this.inflight.delete(targetRound);
-      });
+    const promise = this.submitCheckpoint(targetRound, authorityAddress, submitFn).finally(() => {
+      this.inflight.delete(targetRound);
+    });
 
     this.inflight.set(targetRound, promise);
     return promise;
