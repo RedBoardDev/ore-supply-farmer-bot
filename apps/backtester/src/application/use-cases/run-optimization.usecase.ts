@@ -63,6 +63,9 @@ export class RunOptimizationUseCase {
     );
 
     const topCandidates = randomSearch.getTopN(randomSearchResult.evaluations, 5);
+    if (topCandidates.length === 0) {
+      throw new Error('Random search produced no candidate to optimize from');
+    }
     logDebug('\nTop 5 candidates from random search:');
     topCandidates.forEach((c, i) => {
       logDebug(`  ${i + 1}. ROI: ${c.metrics.roi.toFixed(2)}% | Win Rate: ${(c.metrics.winRate * 100).toFixed(2)}%`);
@@ -71,16 +74,26 @@ export class RunOptimizationUseCase {
     logInfo('\n=== PHASE 2: HILL CLIMBING (Exploitation) ===');
 
     const allEvaluations: ConfigEvaluation[] = [...randomSearchResult.evaluations];
-    let globalBestConfig = topCandidates[0].config;
-    let globalBestROI = topCandidates[0].metrics.roi;
+    const firstCandidate = topCandidates[0];
+    if (!firstCandidate) {
+      throw new Error('Missing first random-search candidate');
+    }
+
+    let globalBestConfig = firstCandidate.config;
+    let globalBestROI = firstCandidate.metrics.roi;
     const convergenceHistory: number[] = [globalBestROI];
 
     for (let i = 0; i < Math.min(3, topCandidates.length); i++) {
       logInfo(`\nHill Climbing from candidate ${i + 1}/${topCandidates.length}...`);
 
+      const candidate = topCandidates[i];
+      if (!candidate) {
+        continue;
+      }
+
       const climbResult = await hillClimbing.climb(
         validRounds,
-        topCandidates[i].config,
+        candidate.config,
         {
           initialBudgetSol: input.params.initialBudgetSol,
           bounds: input.params.bounds,

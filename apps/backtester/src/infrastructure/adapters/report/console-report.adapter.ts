@@ -46,9 +46,12 @@ export class ConsoleReportAdapter implements ReportPort {
     console.log(`  Elapsed Time:              ${(result.elapsedMs / 1000).toFixed(1)}s`);
 
     if (result.convergenceHistory.length > 0) {
-      const improvement = result.convergenceHistory[result.convergenceHistory.length - 1] -
-        result.convergenceHistory[0];
-      console.log(`  ROI Improvement:           ${chalk.green('+' + improvement.toFixed(2) + '%')}`);
+      const firstRoi = result.convergenceHistory[0];
+      const lastRoi = result.convergenceHistory.at(-1);
+      if (firstRoi !== undefined && lastRoi !== undefined) {
+        const improvement = lastRoi - firstRoi;
+        console.log(`  ROI Improvement:           ${chalk.green('+' + improvement.toFixed(2) + '%')}`);
+      }
     }
 
     this.printTopConfigurations(result);
@@ -216,6 +219,9 @@ export class ConsoleReportAdapter implements ReportPort {
 
     for (let i = 0; i < topN; i++) {
       const r = sortedResults[i];
+      if (!r) {
+        continue;
+      }
       table.push([
         (i + 1).toString(),
         r.config.minEvRatio?.toFixed(2) ?? 'null',

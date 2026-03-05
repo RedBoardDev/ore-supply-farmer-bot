@@ -43,14 +43,18 @@ export class RandomSearchAdapter {
       if (i % 10 === 0 && i > 0) {
         logDebug(`  Evaluated ${i}/${configs.length} configs...`);
       }
+      const config = configs[i];
+      if (!config) {
+        continue;
+      }
 
       const result = await this.simulator.simulateBatch(sampleData, {
-        config: configs[i],
+        config,
         initialBalanceLamports: this.solToLamports(params.initialBudgetSol),
       });
 
       evaluations.push({
-        config: configs[i],
+        config,
         metrics: result.metrics,
         iteration: i,
       });
@@ -60,6 +64,9 @@ export class RandomSearchAdapter {
 
     const sorted = [...evaluations].sort((a, b) => b.metrics.roi - a.metrics.roi);
     const best = sorted[0];
+    if (!best) {
+      throw new Error('Random search did not produce any evaluation');
+    }
 
     logInfo(`Best ROI from random search: ${best.metrics.roi.toFixed(2)}%`);
 
@@ -94,8 +101,9 @@ export class RandomSearchAdapter {
 
     for (let i = 0; i < sampleSize; i++) {
       const index = i * step;
-      if (index < data.length) {
-        sample.push(data[index]);
+      const round = data[index];
+      if (round) {
+        sample.push(round);
       }
     }
 

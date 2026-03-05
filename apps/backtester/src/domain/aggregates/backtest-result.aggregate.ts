@@ -105,7 +105,8 @@ function calculateMetrics(rounds: readonly SimulatedRound[], initialBalance: big
 
   const sharpeRatio = calculateSharpeRatio(rounds);
 
-  const finalBalance = rounds.length > 0 ? rounds[rounds.length - 1].balanceAfterLamports : initialBalance;
+  const lastRound = rounds.at(-1);
+  const finalBalance = lastRound ? lastRound.balanceAfterLamports : initialBalance;
   const finalBalanceSol = Number(finalBalance) / Number(LAMPORTS_PER_SOL);
 
   return {

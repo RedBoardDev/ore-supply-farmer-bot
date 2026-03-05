@@ -46,6 +46,9 @@ export class BacktestSimulatorAdapter implements SimulatorPort {
 
     for (let i = 0; i < rounds.length; i++) {
       const round = rounds[i];
+      if (!round) {
+        continue;
+      }
 
       if (i % 1000 === 0 && i > 0) {
         logDebug(`Simulated ${i} / ${rounds.length} rounds...`);
