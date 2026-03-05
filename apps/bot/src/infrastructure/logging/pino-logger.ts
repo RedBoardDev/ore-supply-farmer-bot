@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { loadConfig } from '@osb/config';
 import pino, { type Logger, type LoggerOptions } from 'pino';
 import type { LoggerPort, LogLevel } from './logger.port.js';
@@ -8,6 +9,9 @@ export interface LoggerConfig {
   prettyPrint?: boolean;
   traceErrors?: boolean;
 }
+
+const require = createRequire(import.meta.url);
+let warnedMissingPretty = false;
 
 export class PinoLogger implements LoggerPort {
   private logger: Logger;
@@ -28,14 +32,20 @@ export class PinoLogger implements LoggerPort {
       level: config.level,
     };
 
-    options.transport = {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'SYS:standard',
-        ignore: 'pid,hostname',
-      },
-    };
+    const shouldPrettyPrint = config.prettyPrint ?? process.env.NODE_ENV !== 'production';
+    if (shouldPrettyPrint && hasPrettyTransport()) {
+      options.transport = {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          translateTime: 'SYS:standard',
+          ignore: 'pid,hostname',
+        },
+      };
+    } else if (shouldPrettyPrint && !warnedMissingPretty) {
+      warnedMissingPretty = true;
+      console.warn('pino-pretty not found, falling back to structured JSON logs.');
+    }
 
     this.logger = pino(options);
   }
@@ -123,4 +133,13 @@ export function createChildLogger(name: string): LoggerPort {
     throw new Error('Logger not initialized');
   }
   return globalRootLogger.child({ name });
+}
+
+function hasPrettyTransport(): boolean {
+  try {
+    require.resolve('pino-pretty');
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -17,6 +17,7 @@ import { createChildLogger } from '@osb/bot/infrastructure/logging/pino-logger';
 import type { ConfigSchema } from '@osb/config';
 import { SLOT_DURATION_MS } from '@osb/domain/value-objects/slot.vo';
 import type { Connection, Keypair, PublicKey } from '@solana/web3.js';
+import { recordEvScore, recordRoundPlacement, recordRoundStake } from '../../../../infrastructure/metrics/prometheus';
 import type { PlacementPrefetcher } from '../prefetcher/placement-prefetcher';
 import { PlacementStrategy } from '../strategy/placement-strategy';
 import { PlacementContextProvider } from './placement-context.provider';
@@ -231,6 +232,10 @@ export class AttemptPlacement {
       log.info(
         `⏭️  SKIPPED - Round ${expectedRoundId}: No profitable placements found (planning ${planningDuration}ms, total prep ${preparationTotal}ms${bestEvMessage})`,
       );
+      // Record EV score for skipped placements
+      if (bestEvRatio !== null) {
+        recordEvScore(expectedRoundId, bestEvRatio);
+      }
       return false;
     }
 
@@ -243,6 +248,9 @@ export class AttemptPlacement {
         `  → Square #${decision.squareIndex + 1}: stake=${Number(decision.amountLamports) / 1e9} SOL, others=${Number(decision.othersStakeLamports) / 1e9} SOL, EV=${decision.evRatio.toFixed(3)}`,
       );
     }
+
+    // Record EV score for planned placements
+    recordEvScore(expectedRoundId, topEv);
 
     const preparedPlacements = await this.instructionsBuilder.prepare(expectedRoundId, plan, INSTRUCTION_CACHE_LIMIT);
     if (preparedPlacements.length === 0) {
@@ -282,16 +290,26 @@ export class AttemptPlacement {
     const executionSummary = await this.executor.execute(expectedRoundId, placementsToExecute);
     const executionDuration = Date.now() - executionStart;
 
+    // Calculate total stake from successful placements
+    const totalStakeSol = executionSummary.results.reduce((sum, result) => {
+      if (!result.success) return sum;
+      return sum + Number(result.decision.amountLamports) / 1e9;
+    }, 0);
+
+    // Record round placement count and stake for Prometheus
+    recordRoundPlacement(expectedRoundId.toString(), executionSummary.completed);
+    recordRoundStake(expectedRoundId.toString(), totalStakeSol);
+
     if (executionSummary.completed > 0) {
       this.placementEndTime = Date.now();
       this.placementEndSlot = await this.runtimeHelper.getCurrentSlot();
 
-      const totalDuration = Date.now() - placementStart;
+      const totalDurationMs = Date.now() - placementStart;
       const slotsRemaining = endSlot - (this.placementEndSlot ?? 0);
       const timeRemaining = Math.round(slotsRemaining * SLOT_DURATION_MS);
 
       log.info(
-        `✅ SUCCESS ✅ Round ${expectedRoundId}: Completed ${executionSummary.completed} placement(s) (execution ${executionDuration}ms, total ${totalDuration}ms) - ${slotsRemaining} slots (${timeRemaining}ms) remaining`,
+        `✅ SUCCESS ✅ Round ${expectedRoundId}: Completed ${executionSummary.completed} placement(s) (execution ${executionDuration}ms, total ${totalDurationMs}ms) - ${slotsRemaining} slots (${timeRemaining}ms) remaining`,
       );
 
       this.runtimeHelper.recordLatency(

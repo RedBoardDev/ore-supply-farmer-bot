@@ -2,8 +2,10 @@ import type { BlockchainPort } from '@osb/bot/domain/services/ports/blockchain.p
 import type { PricePort, PriceQuote } from '@osb/bot/domain/services/ports/price.port';
 import type { RoundMetrics } from '@osb/bot/domain/types/round';
 import { ORE_ATOMS_PER_ORE } from '@osb/bot/infrastructure/constants';
+import { getControlService } from '@osb/bot/infrastructure/control/control-service';
 import { getGlobalContainer } from '@osb/bot/infrastructure/di/container';
 import { createChildLogger } from '@osb/bot/infrastructure/logging/pino-logger';
+import { recordRoundEnd } from '@osb/bot/infrastructure/metrics/prometheus';
 import type { Miner } from '@osb/domain';
 import { LAMPORTS_PER_SOL, type PublicKey } from '@solana/web3.js';
 import type { DiscordNotifier } from '../notification/discord-notifier.interface';
@@ -51,8 +53,6 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
   }
 
   recordPlacement(roundId: bigint, stakeLamports: bigint, squareIndex: number): void {
-    if (!this.discordNotifier) return;
-
     let metrics = this.roundMetrics.get(roundId);
     if (!metrics) {
       metrics = {
@@ -71,7 +71,7 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
   }
 
   setPriceQuote(roundId: bigint, priceQuote: PriceQuote | null): void {
-    if (!this.discordNotifier || !priceQuote) return;
+    if (!priceQuote) return;
 
     let metrics = this.roundMetrics.get(roundId);
     if (!metrics) {
@@ -89,7 +89,7 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
   }
 
   async finalizeRounds(currentBoardRound: bigint): Promise<void> {
-    if (!this.discordNotifier || this.roundMetrics.size === 0) return;
+    if (this.roundMetrics.size === 0) return;
 
     try {
       const authorityKey = this.container.resolve<PublicKey>('AuthorityPublicKey');
@@ -127,14 +127,15 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
     metrics.evaluated = true;
     this.roundMetrics.delete(roundId);
 
-    if (!this.discordNotifier) return;
-
     if (metrics.totalStakeLamports <= 0n) {
       this.lossStreak = 0;
       return;
     }
 
     const squareCount = metrics.squares.size;
+    const rewardsSol = Number(deltaSol) / LAMPORTS_PER_SOL;
+    const rewardsOre = Number(deltaOre) / Number(ORE_ATOMS_PER_ORE);
+    const stakeSol = Number(metrics.totalStakeLamports) / LAMPORTS_PER_SOL;
 
     if (deltaSol > 0n || deltaOre > 0n) {
       const lossesBeforeWin = this.lossStreak;
@@ -146,27 +147,50 @@ export class RoundMetricsManagerAdapter implements RoundMetricsManager {
       const oreValueLamports = this.computeOreValueLamports(deltaOre, orePriceInSol);
       const realPnlLamports = oreValueLamports !== null ? pnlLamports + oreValueLamports : pnlLamports;
 
-      await this.discordNotifier.sendWin({
-        roundId,
-        winningSolLamports: deltaSol,
-        winningOreAtoms: deltaOre,
-        stakeLamports: metrics.totalStakeLamports,
-        pnlLamports,
-        realPnlLamports,
-        squareCount,
-        lossesBeforeWin,
-      });
+      if (this.discordNotifier) {
+        await this.discordNotifier.sendWin({
+          roundId,
+          winningSolLamports: deltaSol,
+          winningOreAtoms: deltaOre,
+          stakeLamports: metrics.totalStakeLamports,
+          pnlLamports,
+          realPnlLamports,
+          squareCount,
+          lossesBeforeWin,
+        });
+      }
     } else {
       this.lossStreak += 1;
       if (this.lossStreak % 5 === 0) {
-        await this.discordNotifier.sendLoss({
-          roundId,
-          stakeLamports: metrics.totalStakeLamports,
-          squareCount,
-          lossStreak: this.lossStreak,
-        });
+        if (this.discordNotifier) {
+          await this.discordNotifier.sendLoss({
+            roundId,
+            stakeLamports: metrics.totalStakeLamports,
+            squareCount,
+            lossStreak: this.lossStreak,
+          });
+        }
       }
     }
+
+    const won = deltaSol > 0n || deltaOre > 0n;
+    // Motherlode is square 0 - if we placed on it and won, it's likely the motherlode
+    const motherlodeWon = won && metrics.squares.has(0);
+    const winningSquare = metrics.squares.has(0) ? 0 : metrics.squares.size > 0 ? Math.min(...metrics.squares) : -1;
+
+    recordRoundEnd(
+      roundId.toString(),
+      won,
+      motherlodeWon,
+      winningSquare,
+      'completed',
+      stakeSol,
+      rewardsSol,
+      rewardsOre,
+      metrics.placements,
+    );
+
+    getControlService().recordRoundOutcome(won, motherlodeWon, deltaSol);
   }
 
   private computeOreValueLamports(atoms: bigint, orePriceInSol: number | null): bigint | null {

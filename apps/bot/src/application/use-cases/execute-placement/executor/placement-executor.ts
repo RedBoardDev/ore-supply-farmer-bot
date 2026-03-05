@@ -4,7 +4,9 @@ import type { BlockhashCache } from '@osb/bot/infrastructure/adapters/blockchain
 import type { RoundMetricsManager } from '@osb/bot/infrastructure/adapters/round/round-metrics';
 import type { TransactionBuilder } from '@osb/bot/infrastructure/adapters/transaction/transaction-builder';
 import type { TransactionSender } from '@osb/bot/infrastructure/adapters/transaction/transaction-sender.adapter';
+import { getControlService } from '@osb/bot/infrastructure/control/control-service';
 import type { LoggerPort } from '@osb/bot/infrastructure/logging/logger.port';
+import { recordError, recordPlacement } from '@osb/bot/infrastructure/metrics/prometheus';
 import type { TransactionConfig } from '@osb/config';
 import type { Connection, Keypair, TransactionInstruction } from '@solana/web3.js';
 
@@ -72,6 +74,8 @@ export class PlacementExecutor {
                   : 'submitted (unconfirmed)';
             this.logger.info(`  ✓ Square #${squareLabel} ${statusLabel} (${txDuration}ms)${signatureLabel}`);
 
+            recordPlacement(roundId, squareLabel, txDuration / 1000, 'success');
+            getControlService().recordPlacement(placement.decision.amountLamports);
             this.roundMetricsManager?.recordPlacement(
               roundId,
               placement.decision.amountLamports,
@@ -82,11 +86,15 @@ export class PlacementExecutor {
           }
 
           this.logger.error(`  ✗ Square #${squareLabel} failed (${txDuration}ms): ${result.error ?? 'unknown error'}`);
+          recordPlacement(roundId, squareLabel, txDuration / 1000, 'failure');
+          recordError('placement', 'error');
           await this.simulatePlacement(placement.instructions, roundId, placement.decision.squareIndex);
           return { success: false, decision: placement.decision, error: result.error };
         } catch (error) {
           const txDuration = Date.now() - txStart;
           this.logger.error(`  ✗ Square #${squareLabel} failed (${txDuration}ms): ${(error as Error).message}`);
+          recordPlacement(roundId, squareLabel, txDuration / 1000, 'failure');
+          recordError('placement', 'error');
           await this.simulatePlacement(placement.instructions, roundId, placement.decision.squareIndex);
           return { success: false, decision: placement.decision, error: (error as Error).message };
         }

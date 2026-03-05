@@ -103,7 +103,7 @@ export const timingSchema = z
         initialExecPerPlacementMs: 160,
         maxSamples: 200,
       }),
-    boardPollIntervalMs: z.number().int().min(500).max(60_000).default(5_000),
+    boardPollIntervalMs: z.number().int().min(500).max(60_000).default(5000),
     queueOverheadMaxMs: z.number().int().min(0).max(500).default(30),
     queueOverheadFactor: z.number().int().min(0).max(50).default(8),
   })
@@ -163,6 +163,16 @@ export const miningCostSchema = z
 
 export type MiningCostConfig = z.infer<typeof miningCostSchema>;
 
+export const prometheusSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    port: z.number().int().min(1024).max(65_535).default(3001),
+    host: z.string().default('0.0.0.0'),
+  })
+  .strict();
+
+export type PrometheusConfig = z.infer<typeof prometheusSchema>;
+
 // ============================================================================
 // MAIN CONFIG SCHEMAS
 // ============================================================================
@@ -179,6 +189,7 @@ export const configFileSchema = z
     transaction: transactionSchema,
     claim: claimSchema,
     miningCost: miningCostSchema,
+    prometheus: prometheusSchema,
   })
   .strict();
 

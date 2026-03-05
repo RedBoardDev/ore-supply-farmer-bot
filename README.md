@@ -92,7 +92,6 @@ ore-supply-farmer-bot/
 ├── monitoring/
 │   ├── grafana/          # Dashboards
 │   ├── prometheus/       # Metrics config
-│   └── alertmanager/     # Alert routing
 ├── docs/                 # Documentation
 ├── scripts/              # Utility scripts
 ├── config/               # Configuration files
@@ -123,7 +122,6 @@ docker-compose up -d
 Access points:
 - **Grafana**: http://localhost:3100 (admin/admin123)
 - **Prometheus**: http://localhost:9090
-- **Alertmanager**: http://localhost:9093
 
 ### Metrics
 
@@ -185,7 +183,5 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 ---
 
 <div align="center">
-
-Built with Hexagonal Architecture + DDD on Solana
 
 </div>

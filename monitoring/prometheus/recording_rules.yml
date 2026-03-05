@@ -1,0 +1,131 @@
+# =============================================================================
+# Prometheus Recording Rules for ORE Bot
+# =============================================================================
+# These rules pre-compute frequently used queries for better performance
+# Reference: Prometheus documentation on recording rules
+# =============================================================================
+
+groups:
+  - name: ore-bot-recording-rules
+    interval: 30s
+    rules:
+      # -------------------------------------------------------------------------
+      # TOTAL METRICS - Simple sums without labels for dashboard display
+      # -------------------------------------------------------------------------
+
+      # Total successful placements (gauge for display)
+      - record: ore:placements_total:success
+        expr: sum(ore_placements_total{status="success"})
+
+      # Total failed placements (gauge for display)
+      - record: ore:placements_total:failure
+        expr: sum(ore_placements_total{status="failure"})
+
+      # Total placements (all statuses)
+      - record: ore:placements_total
+        expr: sum(ore_placements_total)
+
+      # Total rounds (evaluated)
+      - record: ore:rounds_total
+        expr: sum(ore_rounds_total)
+
+      # Total winning rounds
+      - record: ore:rounds_win_total
+        expr: sum(ore_rounds_win_total)
+
+      # Total losing rounds
+      - record: ore:rounds_loss_total
+        expr: sum(ore_rounds_loss_total)
+
+      # Total successful checkpoints (gauge for display)
+      - record: ore:checkpoints_total:success
+        expr: sum(ore_checkpoint_total{status="success"})
+
+      # Total failed checkpoints (gauge for display)
+      - record: ore:checkpoints_total:failure
+        expr: sum(ore_checkpoint_total{status="failure"})
+
+      # Total checkpoints (all statuses)
+      - record: ore:checkpoints_total
+        expr: sum(ore_checkpoint_total)
+
+      # -------------------------------------------------------------------------
+      # SUCCESS RATES - Using cumulative totals to avoid NaN from rate() issues
+      # -------------------------------------------------------------------------
+
+      # Placement success rate (percent) over last 5 minutes
+      - record: ore:placement_success_rate_percent:5m
+        expr: |
+          100 * sum(increase(ore_placements_total{status="success"}[5m])) /
+          clamp_min(sum(increase(ore_placements_total[5m])), 1)
+
+      # Checkpoint success rate (percent) over last 5 minutes
+      - record: ore:checkpoint_success_rate_percent:5m
+        expr: |
+          100 * sum(increase(ore_checkpoint_total{status="success"}[5m])) /
+          clamp_min(sum(increase(ore_checkpoint_total[5m])), 1)
+
+      # -------------------------------------------------------------------------
+      # RATES AND COUNTERS - For time-series charts
+      # -------------------------------------------------------------------------
+
+      # Placement rate per minute
+      - record: ore:placements_rate_per_minute:5m
+        expr: sum(rate(ore_placements_total[5m])) * 60
+
+      # Checkpoint rate per minute (continuous operation)
+      - record: ore:checkpoints:rate1m
+        expr: sum(rate(ore_checkpoint_total[5m])) * 60
+
+      # -------------------------------------------------------------------------
+      # REWARDS METRICS
+      # -------------------------------------------------------------------------
+
+      # SOL rewards earned in the last hour
+      - record: ore:rewards_sol_per_hour
+        expr: increase(ore_rewards_sol_total[1h])
+
+      # SOL rewards rate per second
+      - record: ore:rewards_sol_rate:5m
+        expr: sum(rate(ore_rewards_sol_total[5m]))
+
+      # ORE rewards earned in the last hour
+      - record: ore:rewards_ore:1h
+        expr: increase(ore_rewards_ore_total[1h])
+
+      # -------------------------------------------------------------------------
+      # LATENCY PERCENTILES - Histogram-based P95 calculations
+      # -------------------------------------------------------------------------
+
+      # Checkpoint duration P95 in seconds
+      - record: ore:checkpoint_latency:p95
+        expr: histogram_quantile(0.95, sum by (le) (rate(ore_checkpoint_duration_seconds_bucket[5m])))
+
+      # Placement duration P95 in seconds
+      - record: ore:placement_latency:p95
+        expr: histogram_quantile(0.95, sum by (le) (rate(ore_placement_duration_seconds_bucket[5m])))
+
+      # RPC request duration P95 in seconds
+      - record: ore:rpc_latency:p95
+        expr: histogram_quantile(0.95, sum by (le) (rate(ore_rpc_request_duration_seconds_bucket[5m])))
+
+      # -------------------------------------------------------------------------
+      # EV SCORE METRICS - Per-round expected value tracking
+      # -------------------------------------------------------------------------
+
+      # Average EV score (fallback to 0 when no samples)
+      - record: ore:ev_score:avg
+        expr: |
+          sum(rate(ore_ev_score_sum[5m])) /
+          clamp_min(sum(rate(ore_ev_score_count[5m])), 1)
+
+      # -------------------------------------------------------------------------
+      # RPC ERROR RATE - Using rate with fallback to handle sparse data
+      # -------------------------------------------------------------------------
+
+      # RPC error percentage
+      - record: ore:rpc_error_rate_percent:5m
+        expr: |
+          100 * sum(rate(ore_rpc_requests_total{status="error"}[5m])) /
+          clamp_min(sum(rate(ore_rpc_requests_total[5m])), 1)
+          or vector(0)

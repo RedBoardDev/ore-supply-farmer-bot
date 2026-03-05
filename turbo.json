@@ -24,12 +24,12 @@
     },
     "check:all": {
       "cache": true,
-      "dependsOn": ["^check:all"],
+      "dependsOn": ["^build", "^check:all"],
       "outputs": []
     },
     "typescript:check": {
       "cache": true,
-      "dependsOn": ["^typescript:check"],
+      "dependsOn": ["^build", "^typescript:check"],
       "outputs": []
     },
     "test": {

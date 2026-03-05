@@ -38,6 +38,7 @@ export class RunLoop {
   private readonly slotCache: SlotCache | null = null;
   private claimInFlight: Promise<bigint> | null = null;
   private lastKnownSlot = 0;
+  private paused = false;
 
   constructor(
     private readonly config: ConfigSchema,
@@ -65,6 +66,10 @@ export class RunLoop {
   async start(): Promise<void> {
     while (!this.stopRequested) {
       try {
+        if (this.paused) {
+          await sleep(250);
+          continue;
+        }
         const board = await this.getBoard();
         if (!board) {
           await sleep(200);
@@ -115,18 +120,18 @@ export class RunLoop {
           });
         }
 
-        // Proactive checkpoint: 10 slots before placement window
-        if (
-          this.state.checkpointTriggeredForRound !== roundId &&
-          remainingSlots <= placementThreshold + 10 &&
-          remainingSlots > placementThreshold
-        ) {
-          this.state.checkpointTriggeredForRound = roundId;
-          log.info(`Round ${roundId}: Proactive checkpoint (${remainingSlots} slots remaining)`);
-          void this.roundHandler.ensureCheckpoint(this.blockchain, RoundId.create(roundId)).catch((error) => {
-            log.debug(`Proactive checkpoint failed: ${(error as Error).message}`);
-          });
-        }
+        // Proactive checkpoint: 10 slots before placement window - DISABLED TEMPORARILY
+        // if (
+        //   this.state.checkpointTriggeredForRound !== roundId &&
+        //   remainingSlots <= placementThreshold + 10 &&
+        //   remainingSlots > placementThreshold
+        // ) {
+        //   this.state.checkpointTriggeredForRound = roundId;
+        //   log.info(`Round ${roundId}: Proactive checkpoint (${remainingSlots} slots remaining)`);
+        //   void this.roundHandler.ensureCheckpoint(this.blockchain, RoundId.create(roundId)).catch((error) => {
+        //     log.debug(`Proactive checkpoint failed: ${(error as Error).message}`);
+        //   });
+        // }
 
         // Start Round stream early (10-12 slots before placement)
         if (
@@ -197,6 +202,14 @@ export class RunLoop {
 
   stop(): void {
     this.stopRequested = true;
+  }
+
+  pause(): void {
+    this.paused = true;
+  }
+
+  resume(): void {
+    this.paused = false;
   }
 
   private async getBoard(): Promise<BoardContext | null> {

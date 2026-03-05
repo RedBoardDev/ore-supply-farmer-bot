@@ -68,3 +68,4 @@ coverage/
 *.seed
 *.pid.lock
 .osgrep
+.turbo
