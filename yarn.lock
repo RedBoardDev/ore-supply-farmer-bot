@@ -565,7 +565,6 @@ __metadata:
     "@osb/config": "npm:*"
     "@osb/domain": "npm:*"
     "@solana/web3.js": "npm:^1.91.0"
-    "@types/bs58": "npm:^4.0.4"
     "@types/express": "npm:^4.17.21"
     "@types/node": "npm:^20.10.0"
     bs58: "npm:^5.0.0"
@@ -574,7 +573,6 @@ __metadata:
     tsx: "npm:^4.6.0"
     typescript: "npm:^5.3.0"
     vite-tsconfig-paths: "npm:^5.0.0"
-    vitest: "npm:^1.0.0"
   languageName: unknown
   linkType: soft
 
@@ -843,16 +841,6 @@ __metadata:
     "@types/connect": "npm:*"
     "@types/node": "npm:*"
   checksum: 10c2/b6dc29c27d64901c7387ff0a554b780057721606c3feda3989acdb4b60a8ec620d76d4f851490b92a7bd584d32024c27b8fe3943127c7f2631c0991d7cf73df5
-  languageName: node
-  linkType: hard
-
-"@types/bs58@npm:^4.0.4":
-  version: 4.0.4
-  resolution: "@types/bs58@npm:4.0.4"
-  dependencies:
-    "@types/node": "npm:*"
-    base-x: "npm:^3.0.6"
-  checksum: 10c2/079b1220c8977714c33249bdf191739c1d9f6a40e1cf9b2a65dccaab32c67b191210d009b6dd2a15ad4690649197bdcf644fe9de1966e5bceec2cd4bf6a303ca
   languageName: node
   linkType: hard
 
@@ -1158,7 +1146,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"base-x@npm:^3.0.2, base-x@npm:^3.0.6":
+"base-x@npm:^3.0.2":
   version: 3.0.11
   resolution: "base-x@npm:3.0.11"
   dependencies:
@@ -1426,13 +1414,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"colorette@npm:^2.0.7":
-  version: 2.0.20
-  resolution: "colorette@npm:2.0.20"
-  checksum: 10c2/308baa99c57159cd58f2afc387d7c4396d2559d372bccb8fc53643b2637e5f0c47e2575498917594c828dab39914ee097cdfaf80f2a05e51a79d6bd27edf2cf2
-  languageName: node
-  linkType: hard
-
 "commander@npm:^14.0.2":
   version: 14.0.2
   resolution: "commander@npm:14.0.2"
@@ -1492,13 +1473,6 @@ __metadata:
     shebang-command: "npm:^2.0.0"
     which: "npm:^2.0.1"
   checksum: 10c2/c6d2d005916e279abbca1d80d946c5100a8f9e58345384dd460b68103ca337646d8ccd6e9a73d1a42956c6605b8f344f269d8943307193bfa969262af1c013d6
-  languageName: node
-  linkType: hard
-
-"dateformat@npm:^4.6.3":
-  version: 4.6.3
-  resolution: "dateformat@npm:4.6.3"
-  checksum: 10c2/74ae425991f2a4d1ca8d74aa2ec07e57f3d56cc17f7d1f084ac28678e82f89cbc7dfd37b37f56dac5035822c142dfb13dc1b2351c899d73b1df1d41b8dc05c52
   languageName: node
   linkType: hard
 
@@ -1962,20 +1936,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fast-copy@npm:^4.0.0":
-  version: 4.0.2
-  resolution: "fast-copy@npm:4.0.2"
-  checksum: 10c2/cd8c6250bf99599817899118a9569c72ee2386cbe0f74642d25e29dc572a3c385d9b9a818f8cacf3e251181613cfedfaaa26c57e5c90aef94419683d660f10b2
-  languageName: node
-  linkType: hard
-
-"fast-safe-stringify@npm:^2.1.1":
-  version: 2.1.1
-  resolution: "fast-safe-stringify@npm:2.1.1"
-  checksum: 10c2/b97346a868ad45ff2c8e7787656e8fb9e670bf555814518c3ae7d9ad802777baff321c3067eb26adc4e400b5ee45d68a213ff86e8d02c3fdf924ac926f753117
-  languageName: node
-  linkType: hard
-
 "fast-stable-stringify@npm:^1.0.0":
   version: 1.0.0
   resolution: "fast-stable-stringify@npm:1.0.0"
@@ -2189,13 +2149,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"help-me@npm:^5.0.0":
-  version: 5.0.0
-  resolution: "help-me@npm:5.0.0"
-  checksum: 10c2/3b7cbb280706b5264698fdcb754a38789179c77ca4c5a5888dbb865f2398922689db48068d50e0e3282035adf9b13bdf88368b2e0591707bab3ddee335cbf5ed
-  languageName: node
-  linkType: hard
-
 "http-cache-semantics@npm:^4.1.1":
   version: 4.2.0
   resolution: "http-cache-semantics@npm:4.2.0"
@@ -2371,13 +2324,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"joycon@npm:^3.1.1":
-  version: 3.1.1
-  resolution: "joycon@npm:3.1.1"
-  checksum: 10c2/1c82d70ad967dc64d03f789649d0946c143cd5904d73a5061f51c358add7a5de101972af4b7f8cd826b0b05ada7798595ec5b40dbf21f011974bc993523f1e01
-  languageName: node
-  linkType: hard
-
 "js-tokens@npm:^9.0.1":
   version: 9.0.1
   resolution: "js-tokens@npm:9.0.1"
@@ -2529,7 +2475,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimist@npm:^1.2.0, minimist@npm:^1.2.3, minimist@npm:^1.2.6":
+"minimist@npm:^1.2.0, minimist@npm:^1.2.3":
   version: 1.2.8
   resolution: "minimist@npm:1.2.8"
   checksum: 10c2/b7db6338024fce4ee75bf05309a6e0de3d6dda25924b256b0ecb8fa507e44eca24f8c52d69d75dbb53ce1db112c4b66b31ea1dd823064b2b3109a6f8f69d22a7
@@ -2797,11 +2743,9 @@ __metadata:
     "@biomejs/biome": "npm:^2.3.11"
     "@solana/web3.js": "npm:^1.95.5"
     pino: "npm:^10.2.1"
-    pino-pretty: "npm:^13.1.3"
     tsx: "npm:^4.6.0"
     turbo: "npm:^2.7.5"
     typescript: "npm:^5.3.0"
-    vitest: "npm:^1.0.0"
   languageName: unknown
   linkType: soft
 
@@ -2900,29 +2844,6 @@ __metadata:
   dependencies:
     split2: "npm:^4.0.0"
   checksum: 10c2/3c2f4efd0fd62c79adf1f05019baf970f8db546c33e2b7f848299c358319f1af9d03cf68c15e221e4c322f5df725560ea1a7317750877ff93c84c4f450cc7029
-  languageName: node
-  linkType: hard
-
-"pino-pretty@npm:^13.1.3":
-  version: 13.1.3
-  resolution: "pino-pretty@npm:13.1.3"
-  dependencies:
-    colorette: "npm:^2.0.7"
-    dateformat: "npm:^4.6.3"
-    fast-copy: "npm:^4.0.0"
-    fast-safe-stringify: "npm:^2.1.1"
-    help-me: "npm:^5.0.0"
-    joycon: "npm:^3.1.1"
-    minimist: "npm:^1.2.6"
-    on-exit-leak-free: "npm:^2.1.0"
-    pino-abstract-transport: "npm:^3.0.0"
-    pump: "npm:^3.0.0"
-    secure-json-parse: "npm:^4.0.0"
-    sonic-boom: "npm:^4.0.1"
-    strip-json-comments: "npm:^5.0.2"
-  bin:
-    pino-pretty: bin.js
-  checksum: 10c2/309f216d6a69bf81677997f0ec1d43da44f56c7a5cad133d98340f132a9690578c30714b2a65c5397cd5eb9e38067f87ee15c1a4a0748dcf0376f53a5ef847b4
   languageName: node
   linkType: hard
 
@@ -3284,13 +3205,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"secure-json-parse@npm:^4.0.0":
-  version: 4.1.0
-  resolution: "secure-json-parse@npm:4.1.0"
-  checksum: 10c2/b71f612c91702fa208ea84a4b64d4173fdc13938d42786f13363d5d757c7ad83a13344babb2b22fdd52d8fb291a5e03f900fe1853b5587beb27206d9a092d31d
-  languageName: node
-  linkType: hard
-
 "semver@npm:^7.3.5":
   version: 7.7.3
   resolution: "semver@npm:7.7.3"
@@ -3566,13 +3480,6 @@ __metadata:
   version: 3.0.0
   resolution: "strip-final-newline@npm:3.0.0"
   checksum: 10c2/ef719277a380dc54ba4e2a1852c6dc58cbb314e63646fff2de3db5dedd7a4e4742552629365c5426f3e3541ed119d8804329f70e09dc62c8e1de86240ce262e1
-  languageName: node
-  linkType: hard
-
-"strip-json-comments@npm:^5.0.2":
-  version: 5.0.3
-  resolution: "strip-json-comments@npm:5.0.3"
-  checksum: 10c2/0cd098348381639b8854e270b5608fe0a36e55a5cde2f5341b490aa04ee9339c09c4c99235a19cecebbdf0f89056bb72934bfdca9e4d1227affc0acb649e7ed1
   languageName: node
   linkType: hard
 
