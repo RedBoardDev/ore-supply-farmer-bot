@@ -1,5 +1,5 @@
-import { createPinoLogger } from '@osb/bot/infrastructure/logging/pino-logger';
 import type { LogLevel as BotLogLevel } from '@osb/bot/infrastructure/logging/logger.port';
+import { createPinoLogger } from '@osb/bot/infrastructure/logging/pino-logger';
 
 export const LOG_LEVELS = ['debug', 'info', 'warn', 'error', 'silent'] as const;
 

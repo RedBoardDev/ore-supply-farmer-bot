@@ -19,10 +19,10 @@
   "scripts": {
     "start": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
-    "build": "tsc",
-    "clean": "rm -rf dist",
+    "build": "tsc -b --force",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo .tsbuildinfo.check",
     "test": "vitest run",
-    "typescript:check": "tsc --noEmit",
+    "typescript:check": "tsc --noEmit --tsBuildInfoFile .tsbuildinfo.check",
     "lint:check": "biome check .",
     "lint:fix": "biome check . --write --unsafe",
     "format:check": "biome format .",
