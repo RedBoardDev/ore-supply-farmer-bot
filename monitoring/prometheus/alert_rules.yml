@@ -1,0 +1,67 @@
+groups:
+  - name: ore-bot-alerts
+    rules:
+      - alert: HighPlacementFailureRate
+        expr: |
+          sum(rate(ore_placements_total{status="failure"}[5m])) /
+          clamp_min(sum(rate(ore_placements_total[5m])), 1) > 0.5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High placement failure rate"
+          description: "Failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: CheckpointStuck
+        expr: increase(ore_checkpoint_total{status="failure"}[10m]) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Checkpoint failures detected"
+          description: "{{ $value }} checkpoint failures in 10 minutes"
+
+      - alert: LowRewards
+        expr: increase(ore_rewards_sol_total[24h]) < 0.01
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low rewards in last 24h"
+          description: "Only {{ $value }} SOL earned in 24h"
+
+      - alert: HighRPCLatency
+        expr: histogram_quantile(0.95, rate(ore_rpc_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High RPC latency"
+          description: "95th percentile latency is {{ $value }}s"
+
+      - alert: BotDown
+        expr: up{job="ore-bot"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ORE Bot is down"
+          description: "ORE Bot has been down for more than 1 minute"
+
+      - alert: CheckpointLatencyHigh
+        expr: histogram_quantile(0.95, rate(ore_checkpoint_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High checkpoint latency"
+          description: "95th percentile checkpoint latency is {{ $value }}s"
+
+      - alert: PeuDePlacements
+        expr: sum(increase(ore_placements_total{status="success"}[1h])) < 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Peu de placements détectés"
+          description: "Moins de 1 placement/heure détecté ({{ $value }} placements/h)"
