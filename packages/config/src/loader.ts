@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+// biome-ignore lint/nursery/noDeprecatedImports: kept for compatibility with current zod dependency.
 import type { ZodIssue } from 'zod';
 import { type ConfigFileSchema, type ConfigSchema, configFileSchema, configSchema } from './config';
 import { type EnvSchema, envSchema } from './env';

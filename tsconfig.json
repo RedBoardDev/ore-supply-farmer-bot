@@ -6,6 +6,8 @@
     "composite": true,
     "baseUrl": ".",
     "paths": {
+      "@backtester": ["apps/backtester/src/main.ts"],
+      "@backtester/*": ["apps/backtester/src/*"],
       "@osb/domain": ["packages/domain/src/index.ts"],
       "@osb/domain/*": ["packages/domain/src/*"],
       "@osb/config": ["packages/config/src/index.ts"],
