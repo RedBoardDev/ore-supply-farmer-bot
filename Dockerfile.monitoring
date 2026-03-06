@@ -2,37 +2,26 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Enable corepack for Yarn 4
 RUN corepack enable
 
-# Copy all files
 COPY . .
 
-# Install dependencies (allow lockfile updates for dev)
 RUN yarn install
 
-# Install tsx using npm (it's already in devDependencies)
 RUN npm install -g tsx
 
-# Install curl for healthcheck
 RUN apk add --no-cache curl
 
-# Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S ore-bot -u 1001
 
-# Set ownership
 RUN chown -R ore-bot:nodejs /app
 
-# Switch to non-root user
 USER ore-bot
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:3001/health || exit 1
 
-# Expose metrics port
 EXPOSE 3001
 
-# Start the application using tsx (runs TypeScript directly)
 CMD ["tsx", "/app/apps/bot/src/main.ts"]

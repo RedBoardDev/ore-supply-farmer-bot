@@ -69,3 +69,7 @@ coverage/
 *.pid.lock
 .osgrep
 .turbo
+.tsbuildinfo.check
+rounds.db
+rounds.db-shm
+rounds.db-wal
